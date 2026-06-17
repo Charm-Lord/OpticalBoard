@@ -63,4 +63,4 @@ A single-file 2D geometric-optics ray-tracing playground that runs entirely in t
 
 ---
 
-若这个小工具帮到了你，欢迎点击界面右上角的「打赏」支持作者继续完善。
+若这个小工具帮到了你，欢迎点击界面右上角的「Star」支持作者继续完善。
