@@ -12,6 +12,7 @@ A single-file 2D geometric-optics ray-tracing playground that runs entirely in t
 2. 支持一键导出当前配置，下次直接加载即可还原。
 3. 可自定义光学元件，敬请发挥想象。
 4. 光源波长、宽度、亮度皆可调，还可选择白光（复合光）。
+5. 支持一键转3D模型，再也不愁科研配图了。
 
 ## 使用说明
 
