@@ -112,6 +112,11 @@ aside h3:not(:first-of-type){border-top:1px solid var(--line);margin-top:6px;pad
 .phead .mono{font-family:var(--mono);font-size:11px;color:var(--dim)}
 .prow{display:grid;grid-template-columns:64px 1fr 46px 16px;align-items:center;gap:8px;font-size:11.5px;color:var(--dim);font-family:var(--hei)}
 .prow input[type=range]{width:100%;accent-color:var(--acc);min-width:0}
+.prow input[type=range].bip{accent-color:auto;-webkit-appearance:none;appearance:none;background:transparent;height:18px;cursor:pointer}
+.prow input[type=range].bip::-webkit-slider-runnable-track{height:4px;border-radius:99px;background:var(--trackbg,var(--line))}
+.prow input[type=range].bip::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;border-radius:50%;background:var(--acc);margin-top:-5px;border:2px solid var(--panel)}
+.prow input[type=range].bip::-moz-range-track{height:4px;border-radius:99px;background:var(--trackbg,var(--line))}
+.prow input[type=range].bip::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--acc);border:2px solid var(--panel)}
 .prow input[type=number]{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:4px 5px;font-family:var(--mono);font-size:11px;text-align:right;-moz-appearance:textfield}
 .prow input[type=number]:focus{outline:none;border-color:var(--acc)}
 .prow input[type=number]::-webkit-outer-spin-button,.prow input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
@@ -563,7 +568,7 @@ const I18N={
   pEmpty:{zh:'点击工作区中的元件查看与编辑属性',en:'Click an element on the canvas to view and edit its properties'},
   pPlacing:{zh:'放置模式已开启，点击工作区空格放下',en:'Placement mode on; click an empty cell to drop'},
   pEsc:{zh:'，按 Esc 取消',en:', press Esc to cancel'},
-  pRot1:{zh:'+1°',en:'+1°'}, pRot90:{zh:'+90°',en:'+90°'}, pDel:{zh:'删除',en:'Delete'},
+  pRot1:{zh:'+1°',en:'+1°'}, pRotM1:{zh:'-1°',en:'-1°'}, pRot90:{zh:'+90°',en:'+90°'}, pDel:{zh:'删除',en:'Delete'},
   pCopy:{zh:'复制一份',en:'Duplicate'}, pCopyT:{zh:'复制选中元件（Ctrl+C 复制，Ctrl+V 粘贴）',en:'Duplicate selection (Ctrl+C copy, Ctrl+V paste)'},
   pRot1T:{zh:'精调旋转，每次 1 度',en:'Fine rotate, 1° per click'}, pRot90T:{zh:'旋转 90 度',en:'Rotate 90°'},
   // 属性标签
@@ -743,7 +748,7 @@ function indexOf(P,lam){
 // 返回元件的一个或多个界面段。每段含 {c,t,n,half,e,surf}
 function surfsOf(k,e){
   const p=k.split(',');
-  const cx=(+p[0]+.5+(e.props.ox||0))*CELL, cy=(+p[1]+.5+(e.props.oy||0))*CELL;
+  const cx=(+p[0]+.5+(e.props.ox||0))*CELL, cy=(+p[1]+.5-(e.props.oy||0))*CELL;
   const c=v(cx,cy);
   const type=e.type;
   let ang=(e.props.rot||0)*D2R;
@@ -795,7 +800,7 @@ function emit(k,e,Q){
   const d=v(Math.cos(ang),Math.sin(ang));
   const n=v(-d.y,d.x);
   const p=k.split(',');
-  const c=v((+p[0]+.5+(P.ox||0))*CELL,(+p[1]+.5+(P.oy||0))*CELL);
+  const c=v((+p[0]+.5+(P.ox||0))*CELL,(+p[1]+.5-(P.oy||0))*CELL);
   const wid=P.width;
   const bri=P.bri===undefined?1:P.bri;
   const apX=8;                         // 出光口在元件本地坐标的位置
@@ -1012,7 +1017,7 @@ function rr(c,x,y,w,h,r){
 
 function drawElem(k,e){
   const p=k.split(',');
-  const cx=(+p[0]+.5+(e.props.ox||0))*CELL, cy=(+p[1]+.5+(e.props.oy||0))*CELL;
+  const cx=(+p[0]+.5+(e.props.ox||0))*CELL, cy=(+p[1]+.5-(e.props.oy||0))*CELL;
   const h=ELEMS[e.type].half*CELL;
   ctx.save();
   ctx.translate(cx,cy);
@@ -1782,25 +1787,35 @@ function renderProps(){
 
   const range=(label,pk,min,max,step)=>{
     const colored=(pk==='lam'||pk==='lamSet');
+    const bip=(min<0&&max>0);                    // 双向滑块：0 居中，从中心向两侧填琥珀
     const row=document.createElement('div');
     row.className='prow';
     const sp=document.createElement('span');sp.textContent=label;
     const inp=document.createElement('input');
     inp.type='range';inp.min=min;inp.max=max;inp.step=step;inp.value=P[pk];
+    if(bip)inp.classList.add('bip');
     const num=document.createElement('input');
     num.type='number';num.min=min;num.max=max;num.step=step;num.value=P[pk];
     const rst=document.createElement('button');
     rst.className='rst';rst.textContent='\u21ba';rst.title='重置为默认值';
+    const updFill=()=>{
+      if(!bip)return;
+      const pct=(+inp.value-min)/(max-min)*100, ctr=(0-min)/(max-min)*100;
+      const a=Math.min(pct,ctr), b=Math.max(pct,ctr);
+      inp.style.setProperty('--trackbg',`linear-gradient(to right,var(--line) ${a}%,var(--acc) ${a}%,var(--acc) ${b}%,var(--line) ${b}%)`);
+    };
     const apply=val=>{
       val=parseFloat(val);
       if(isNaN(val))val=min;
       val=clamp(val,min,max);
       P[pk]=val;
       inp.value=val;num.value=val;
+      updFill();
       if(colored)num.style.color=css(wlRGB(val));
       needTrace=true;
     };
     if(colored)num.style.color=css(wlRGB(P[pk]));
+    updFill();
     inp.addEventListener('input',()=>apply(inp.value));
     num.addEventListener('change',()=>apply(num.value));
     rst.addEventListener('click',()=>{
@@ -1836,26 +1851,32 @@ function renderProps(){
     propsEl.appendChild(row);
   };
 
+  const normRot=a=>((a%360)+540)%360-180;     // 归一到 -180~180，0° 在滑块正中
+  P.rot=normRot(P.rot||0);
   if(e.type==='source'){
-    range(tr('l_rotOut'),'rot',0,359,1);
+    range(tr('l_rotOut'),'rot',-180,180,1);
   }else{
-    range(tr('l_rot'),'rot',0,355,5);
+    range(tr('l_rot'),'rot',-180,180,1);
   }
   const btns=document.createElement('div');
   btns.className='pbtns';
+  const bm1=document.createElement('button');
+  bm1.textContent=tr('pRotM1');
+  bm1.title=tr('pRot1T');
+  bm1.addEventListener('click',()=>{P.rot=normRot((P.rot||0)-1);needTrace=true;renderProps()});
   const b1=document.createElement('button');
   b1.textContent=tr('pRot1');
   b1.title=tr('pRot1T');
-  b1.addEventListener('click',()=>{P.rot=((P.rot||0)+1)%360;needTrace=true;renderProps()});
+  b1.addEventListener('click',()=>{P.rot=normRot((P.rot||0)+1);needTrace=true;renderProps()});
   const b90=document.createElement('button');
   b90.textContent=tr('pRot90');
   b90.title=tr('pRot90T');
-  b90.addEventListener('click',()=>{P.rot=((P.rot||0)+90)%360;needTrace=true;renderProps()});
+  b90.addEventListener('click',()=>{P.rot=normRot((P.rot||0)+90);needTrace=true;renderProps()});
   const bdel=document.createElement('button');
   bdel.textContent=tr('pDel');
   bdel.className='danger';
   bdel.addEventListener('click',()=>{grid.delete(k);selSet.clear();needTrace=true;renderProps()});
-  btns.append(b1,b90,bdel);
+  btns.append(bm1,b1,b90,bdel);
   propsEl.appendChild(btns);
   const crow=document.createElement('div');
   crow.className='pbtns';
@@ -1975,10 +1996,9 @@ function scene(name){
     put(5,8,'plate',{rot:55,n:1.7,th:0.7,w2:0.9});
     put(9,8,'screen',{rot:90});
   }else if(name==='prismsplit'){
-    put(1,3,'source',{rot:0,lam:632,width:3,bri:1,poly:true});
+    put(2,3,'source',{rot:0,lam:632,width:3,bri:1,poly:true});
     put(4,3,'prism',{rot:244,n:1.55,size:0.85,disp:22,ox:-0.25,oy:0.07});
-    put(6,4,'mirror',{rot:0,ox:-0.09,oy:0.08});
-    put(8,3,'slit',{rot:60,gap:0.25,ox:-0.09,oy:-0.12});
+    put(6,4,'mirror',{rot:0,ox:-0.29,oy:0.08});
   }else if(name==='twocolor'){
     put(-7,-3,'source',{rot:0,lam:658,width:30,bri:2,poly:false});
     put(-5,-3,'splitter',{rot:225,ratio:50});
@@ -2455,7 +2475,7 @@ function dishGeo(R,depth,base){
 }
 function makeOptic(k,e){
   const p=k.split(',');
-  const c={x:(+p[0]+.5+(e.props.ox||0))*CELL,y:(+p[1]+.5+(e.props.oy||0))*CELL};
+  const c={x:(+p[0]+.5+(e.props.ox||0))*CELL,y:(+p[1]+.5-(e.props.oy||0))*CELL};
   let ang=(e.props.rot||0)*D2R; if(e.type==='source')ang+=Math.PI/2;
   const t={x:Math.cos(ang),y:Math.sin(ang)}, nrm={x:-t.y,y:t.x};
   const hf=(OB.ELEMS[e.type]?OB.ELEMS[e.type].half:0.45), type=e.type;
@@ -2473,9 +2493,11 @@ function makeOptic(k,e){
   // 凹面镜：凹球面反射 + 边框
   if(type==='cmirror'){
     const g=new THREE.Group();
-    g.add(new THREE.Mesh(dishGeo(R1,0.09,0.05),MAT.silverMirror));
+    const dish=new THREE.Mesh(dishGeo(R1,0.09,0.05),MAT.silverMirror);
+    dish.rotation.y=Math.PI;          // 凹面翻向迎光侧(-nrm)，修正前后装反
+    g.add(dish);
     const cb=new THREE.Mesh(new THREE.CylinderGeometry(R1,R1,0.05,40),MAT.frosted);
-    cb.rotation.x=Math.PI/2; cb.position.z=-0.065; g.add(cb);
+    cb.rotation.x=Math.PI/2; cb.position.z=0.06; g.add(cb);
     g.add(new THREE.Mesh(new THREE.TorusGeometry(R1,0.026,10,44),MAT.metalMount));
     return placeByBasis(g,c,t,nrm,BEAMY);
   }
