@@ -25,7 +25,7 @@ A dozen or so optical components are available for you to use, allowing you to t
 
 ## 元件库
 
-激光源、反射镜、凹面镜、凸透镜、凹透镜、分束器、衍射光栅、吸收屏、玻璃、直角棱镜、狭缝光阑，二向色镜以及一个可自定义出射方式与波长变换的自定义元件。
+激光源、反射镜、凹面镜、凸透镜、凹透镜、分束器、光栅、棱镜、光阑、倍频晶体、二向色镜以及一个可自定义出射方式与波长变换的自定义元件。
 
 ## 内置示例
 
@@ -42,10 +42,11 @@ A dozen or so optical components are available for you to use, allowing you to t
 
 > 通过自定义元件，实现倍频晶体效果
 
-3. 玻璃折射
-![玻璃折射](demo3.png)
+3. 2D光路一键转3D
+![玻璃折射](Introduction1.png)
 
-> 可自定义玻璃折射率，探究反射折射的奥秘
+> 2D光路一键即可渲染成3D效果
+
 
 ## 其它功能
 
