@@ -80,18 +80,48 @@ main{flex:1;display:flex;min-height:0}
 #zoomctl button:hover{border-color:var(--acc);color:var(--acc)}
 #zoomctl button:active{transform:scale(.94)}
 #zoomctl button.on{border-color:var(--acc);color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+/* 选中元件的悬浮控件框：四角按钮 + 边中点拖动微调手柄 */
+#selFrame{position:absolute;left:0;top:0;width:0;height:0;z-index:4;display:none;pointer-events:none;will-change:left,top,width,height}
+#selFrame.show{display:block}
+#selFrame>*{position:absolute;pointer-events:auto}
+/* 角上的圆形按钮（渐变 + 内外阴影，有质感） */
+.sf-corner{width:27px;height:27px;border-radius:50%;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;color:var(--ink);
+  border:1px solid color-mix(in srgb,var(--line) 75%,transparent);
+  background:linear-gradient(157deg,color-mix(in srgb,var(--panel2) 86%,#fff),var(--panel2));
+  box-shadow:0 3px 9px -2px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.16);
+  transition:border-color .15s,color .15s}
+.sf-corner svg{width:15px;height:15px;display:block}
+.sf-corner:hover{border-color:var(--acc);color:var(--acc)}
+.sf-rotl{left:0;top:0;transform:translate(-50%,-50%)}
+.sf-rotr{left:100%;top:0;transform:translate(-50%,-50%)}
+.sf-del{left:100%;top:100%;transform:translate(-50%,-50%);color:#e3635f}
+.sf-del:hover{border-color:#e3635f;color:#e3635f}
+/* 拖动微调手柄：药丸形双箭头（琥珀渐变 + 高光，有质感） */
+.sf-handle{display:flex;align-items:center;justify-content:center;color:#1a1305;touch-action:none;user-select:none;
+  border:1px solid color-mix(in srgb,var(--acc) 55%,#000);border-radius:999px;
+  background:linear-gradient(158deg,color-mix(in srgb,var(--acc) 78%,#fff),var(--acc) 60%,color-mix(in srgb,var(--acc) 80%,#000));
+  box-shadow:0 3px 10px -2px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 2px rgba(0,0,0,.15);
+  transition:transform .1s,box-shadow .15s,filter .15s}
+.sf-handle svg{width:14px;height:14px;display:block;pointer-events:none}
+.sf-handle:hover{filter:brightness(1.06);box-shadow:0 5px 14px -2px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.55),0 0 0 2px color-mix(in srgb,var(--acc) 40%,transparent)}
+.sf-handle.drag{box-shadow:0 7px 18px -2px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.55),0 0 0 3px color-mix(in srgb,var(--acc) 50%,transparent)}
+.sf-hh{left:50%;top:0;transform:translate(-50%,-50%);width:36px;height:21px;cursor:ew-resize}
+.sf-vh{left:100%;top:50%;transform:translate(-50%,-50%);width:21px;height:36px;cursor:ns-resize}
 aside{
   width:280px;flex:none;border-left:1px solid var(--line);background:var(--panel);
   display:flex;flex-direction:column;overflow-y:auto;
 }
 .drawer-handle,.d3bar{display:none}
+aside>.dw,.tabwrap{flex:none}   /* 各板块按自身高度，由 aside 整体滚动；不再被压缩裁切（修复属性展开遮住元件库）*/
 aside h3{
   font-size:11px;color:var(--dim);letter-spacing:1.6px;
   font-family:var(--hei);font-weight:600;
   padding:15px 16px 9px;text-transform:none;
 }
 aside h3:not(:first-of-type){border-top:1px solid var(--line);margin-top:6px;padding-top:16px}
-#palette{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:2px 16px 8px}
+#palette,#srcPalette{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:2px 16px 8px}
+#measPalette{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:2px 16px 10px}
 .pal{
   display:flex;flex-direction:column;align-items:center;gap:5px;
   padding:10px 4px 8px;border-radius:13px;border:1px solid var(--line);
@@ -153,6 +183,27 @@ aside h3:not(:first-of-type){border-top:1px solid var(--line);margin-top:6px;pad
 .mread{font-size:12px;color:var(--ink);font-family:var(--hei);line-height:1.75;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
 .mclear{padding:6px 0;border-radius:9px;border:1px solid var(--line);background:none;color:var(--dim);font-size:11.5px;cursor:pointer;font-family:var(--hei)}
 .mclear:hover{color:var(--acc);border-color:var(--acc)}
+/* 元件库 / 测量：便签纸式选项卡 */
+.tabwrap{margin:12px 12px 4px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);box-shadow:0 8px 22px -14px rgba(0,0,0,.55);overflow:hidden}
+.tabbar{display:flex}
+.tab{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 8px;border:none;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,var(--panel) 75%,transparent);color:var(--dim);font-family:var(--hei);font-size:13px;font-weight:600;letter-spacing:.4px;cursor:pointer;transition:color .15s,background .15s}
+.tab+.tab{border-left:1px solid var(--line)}
+.tab:hover{color:var(--ink);background:color-mix(in srgb,var(--acc) 7%,transparent)}
+.tab.on{color:var(--acc);background:var(--panel2);border-bottom-color:transparent;box-shadow:0 2px 0 var(--acc) inset}
+.tab .ti{width:15px;height:15px;flex:none}
+.tabbody{padding:8px 0 6px}
+.tabpane{display:none}
+.tabpane.on{display:block;animation:tabfade .2s ease}
+@keyframes tabfade{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.tabwrap #palette,.tabwrap #srcPalette{padding-top:4px}
+/* 测量读数：物理量普通、数字加下划线突出 */
+.mval{font-family:var(--mono);text-decoration:underline;text-decoration-color:var(--acc);text-underline-offset:2.5px;color:var(--ink);font-weight:600;white-space:nowrap}
+.mval.big{font-size:13.5px}
+/* 脉冲波形显示 */
+.pwave{margin-top:4px;border:1px solid var(--line);border-radius:10px;background:color-mix(in srgb,var(--bg) 55%,var(--panel2));padding:6px 8px 4px}
+.pwave .ttl{font-size:10.5px;color:var(--dim);font-family:var(--hei);letter-spacing:.4px;margin-bottom:2px}
+.pwave svg{display:block;width:100%;height:auto}
 #props{padding:0 16px 6px}
 #scenes{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:4px 16px 10px}
 #config{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 10px}
@@ -174,6 +225,7 @@ kbd{font-family:var(--mono);font-size:10.5px;background:var(--kbdbg);border:1px 
 .ver{font-family:var(--mono);font-size:10.5px;color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);border-radius:999px;padding:2px 9px;background:color-mix(in srgb,var(--acc) 10%,transparent)}
 .hbtn{height:32px;min-width:32px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer;font-size:14px;line-height:1;font-family:var(--hei);transition:border-color .15s,color .15s,transform .1s}
 .hbtn.wide{padding:0 13px;font-size:12px}
+.hbtn svg{display:block;margin:auto}
 .hbtn:hover{border-color:var(--acc);color:var(--acc);background:color-mix(in srgb,var(--acc) 9%,var(--panel2))}
 .hbtn:active{transform:scale(.95)}
 #hbar{display:flex;gap:8px;align-items:center;margin-left:12px}
@@ -348,7 +400,7 @@ body.light #rqseg button.on{color:#fff}
 <div id="app">
   <header>
     <div class="mark"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="9" cy="12" r="4.5" fill="none" stroke="#ffb454" stroke-width="2"/><path d="M13.5 12H22" stroke="#ffb454" stroke-width="2" stroke-linecap="round"/><path d="M2 12h2.5" stroke="#5c6c84" stroke-width="2" stroke-linecap="round"/></svg></div>
-    <div class="logo"><b>Optical<i>Board</i></b><span class="ver">ver 1.1</span><span data-i18n="tagline">光学面包板 · 模块化几何光路</span></div>
+    <div class="logo"><b>Optical<i>Board</i></b><span class="ver">ver 1.7</span><span data-i18n="tagline">光学面包板 · 模块化几何光路</span></div>
     <div id="stat"></div>
     <div id="hbar">
       <div id="rqseg" data-i18n-title="rq" title="渲染精细度">
@@ -359,6 +411,7 @@ body.light #rqseg button.on{color:#fff}
       <button id="tghide" class="hbtn" data-i18n-title="hideTitle" title="隐藏元件图标">&#128065;&#xfe0e;</button>
       <button id="exportbtn" class="hbtn wide" data-i18n="exportBtn" data-i18n-title="exportTitle" title="将当前画面导出为 PNG 图片">导出图片</button>
       <button id="d3btn" class="hbtn wide d3btn" data-i18n="d3Btn" data-i18n-title="d3Title" title="切换 3D 视图">3D</button>
+      <button id="fsbtn" class="hbtn" data-i18n-title="fsTitle" title="全屏"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 0-1 1h-4"/></svg></button>
       <button id="tgtheme" class="hbtn" title="切换主题">&#9728;&#xfe0e;</button>
       <button id="helpbtn" class="hbtn" data-i18n-title="helpTitle" title="帮助">?</button>
       <button id="langbtn" class="hbtn" data-i18n-title="langTitle" title="Switch to English">EN</button>
@@ -379,12 +432,20 @@ body.light #rqseg button.on{color:#fff}
       <canvas id="cv"></canvas>
       <div id="hint"></div>
       <div id="zoomctl">
-        <button id="zin" data-i18n-title="zoomIn" title="放大">+</button>
+        <button id="zsel" class="zsel on" data-i18n-title="tbSelect" title="默认指针（取消放置/标尺）"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l6.5 16 2-6.5 6.5-2L5 3z"/></svg></button>
+        <button id="zin" class="zsep" data-i18n-title="zoomIn" title="放大">+</button>
         <button id="zout" data-i18n-title="zoomOut" title="缩小">−</button>
         <button id="zfit" data-i18n-title="zoomFit" title="适配视图">⌖</button>
         <button id="zgrid" data-i18n-title="gridHide" title="隐藏网格">&#9638;</button>
         <button id="zundo" class="zsep" data-i18n-title="undoTitle" title="撤回" disabled><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7h6a4 4 0 0 1 0 8H8"/><path d="M9 7L6 4M9 7L6 10"/></svg></button>
         <button id="zclear" class="zdanger" data-i18n-title="clearTitle" title="清空画布"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13"/></svg></button>
+      </div>
+      <div id="selFrame">
+        <button class="sf-corner sf-rotl" data-act="rotl" data-i18n-title="tbRotL" title="左旋 90°"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9a8 8 0 1 1-1.3 4.4"/><path d="M2.6 3.4v5h5"/></svg></button>
+        <button class="sf-corner sf-rotr" data-act="rotr" data-i18n-title="tbRotR" title="右旋 90°"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 9a8 8 0 1 0 1.3 4.4"/><path d="M21.4 3.4v5h-5"/></svg></button>
+        <button class="sf-corner sf-del" data-act="del" data-i18n-title="tbDel" title="删除"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 4h4M7 7l1 13h8l1-13"/></svg></button>
+        <div class="sf-handle sf-hh" data-axis="x" data-i18n-title="tbHTune" title="左右微调（拖动）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7l-4 5 4 5M15 7l4 5-4 5"/></svg></div>
+        <div class="sf-handle sf-vh" data-axis="y" data-i18n-title="tbVTune" title="上下微调（拖动）"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-4 5 4M7 15l5 4 5-4"/></svg></div>
       </div>
       <div id="three"></div>
       <div id="d3loading"><span data-i18n="d3Loading">正在加载 3D…</span></div>
@@ -410,42 +471,46 @@ body.light #rqseg button.on{color:#fff}
         <label class="row"><span data-i18n="d3Night">夜间</span><input id="d3night" type="checkbox"></label>
         <label class="row"><span data-i18n="d3Bg">背景</span><input id="d3bg" type="color" value="#070a10"></label>
         <label class="row"><span data-i18n="d3Board">面包板</span><input id="d3board" type="checkbox" checked></label>
+        <label class="row"><span data-i18n="d3Reflect">倒影</span><input id="d3reflect" type="checkbox"></label>
         <div class="seg" id="d3light">
           <button data-light="area" class="on" data-i18n="d3Area">面光源</button>
           <button data-light="point" data-i18n="d3Point">点光源</button>
         </div>
         <label><span data-i18n="d3Bri">环境亮度</span><input id="d3bri" type="range" min="0" max="3" step="0.05" value="0.95"></label>
-        <label><span data-i18n="d3Bloom">光束辉光</span><input id="d3bloom" type="range" min="0" max="2" step="0.05" value="0.6"></label>
-        <div class="ph" data-i18n="d3Quality">渲染</div>
-        <div class="seg" id="d3quality">
-          <button data-q="low" data-i18n="rqLow">流畅</button>
-          <button data-q="med" class="on" data-i18n="rqMed">标准</button>
-          <button data-q="high" data-i18n="rqHigh">精细</button>
-        </div>
-        <label class="row"><span data-i18n="d3ExpRes">导出倍率</span>
-          <select id="d3expscale"><option value="1">1×</option><option value="2" selected>2×</option><option value="3">3×</option><option value="4">4×</option></select>
-        </label>
-        <button class="pbtn full" id="d3export" data-i18n="d3Export">导出图片</button>
+        <label><span data-i18n="d3Bloom">光束辉光</span><input id="d3bloom" type="range" min="0" max="1" step="0.02" value="0.45"></label>
+        <label><span data-i18n="d3Shadow">元件阴影</span><input id="d3shadow" type="range" min="0" max="24" step="1" value="5"></label>
       </div>
     </div>
     <aside>
       <div class="drawer-handle" id="drawerHandle" aria-label="展开或收起面板"></div>
-      <details class="dw" open><summary data-i18n="hLib">元件库</summary>
-        <div id="palette"></div>
+      <details class="dw" open id="elemDrawer"><summary data-i18n="hElem">元件</summary>
+      <div class="tabwrap">
+        <div class="tabbar" role="tablist">
+          <button class="tab on" data-tab="src" role="tab"><svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg><span data-i18n="hSources">光源</span></button>
+          <button class="tab" data-tab="lib" role="tab"><svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span data-i18n="hLib">元件</span></button>
+          <button class="tab" data-tab="meas" role="tab"><svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" rx="1"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg><span data-i18n="hMeasure">测量</span></button>
+        </div>
+        <div class="tabbody">
+          <div class="tabpane on" data-pane="src"><div id="srcPalette"></div></div>
+          <div class="tabpane" data-pane="lib"><div id="palette"></div></div>
+          <div class="tabpane" data-pane="meas">
+            <div id="measPalette"></div>
+            <div class="measwrap">
+              <div class="mread" id="measLenRead" data-i18n="mLenNo">未测量</div>
+              <button id="measClear" class="mclear" data-i18n="mClear">清除标尺</button>
+              <div class="mread" id="measDetList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
       </details>
       <details class="dw" open><summary data-i18n="hProp">属性</summary>
         <div id="props"></div>
       </details>
-      <details class="dw" open id="measDrawer"><summary data-i18n="hMeasure">测量</summary>
+      <details class="dw" open id="scaleDrawer"><summary data-i18n="hScale">比例尺 / 标度</summary>
         <div class="measwrap">
-          <div class="msub" data-i18n="mLen">长度测量</div>
-          <button id="measBtn" class="measbtn"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" rx="1"/><path d="M7 8v3M11 8v4M15 8v3M19 8v4"/></svg><span data-i18n="mRuler">测量长度</span></button>
-          <label class="mrow"><span data-i18n="mScale">比例尺 1格 =</span><input id="measScale" type="number" min="0.001" step="0.5" value="10"><span>mm</span></label>
-          <div class="mread" id="measLenRead" data-i18n="mLenNo">未测量</div>
-          <button id="measClear" class="mclear" data-i18n="mClear">清除标尺</button>
-          <div class="msub" data-i18n="mInt">光强 / 功率测量</div>
-          <button id="measAddDet" class="measbtn"><svg class="mi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18a8 8 0 0 1 16 0"/><path d="M12 18l4.5-5.5"/><circle cx="12" cy="18" r="1.4" fill="currentColor" stroke="none"/></svg><span data-i18n="mAddDet">放置探测器</span></button>
-          <div class="mread" id="measDetList"></div>
+          <label class="mrow"><span data-i18n="mScale">1 格 =</span><input id="measScale" type="number" min="0.01" step="0.5" value="1"><span>cm</span></label>
+          <div class="empty" data-i18n="scaleHint">长度测量与脉冲色散都按此标度计算（默认 1 格 = 1 cm，随时可改）。</div>
         </div>
       </details>
       <details class="dw"><summary data-i18n="hScenes">示例场景</summary>
@@ -542,20 +607,19 @@ const rotv=(a,ang)=>{const c=Math.cos(ang),s=Math.sin(ang);return v(a.x*c-a.y*s,
 const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 
 function wlRGB(w){
+  // 可见范围钳位到 [390,720]：>720 一律按 720nm(红)、<390 一律按 390nm(紫)显示；
+  // 光束、光斑、3D 光柱与右侧属性面板的波长数字都经此函数上色，故三者行为统一。
+  w=clamp(w,390,720);
   let r=0,g=0,b=0;
-  if(w<380){r=.32;g=0;b=.5}                       // 紫外：暗紫示意（不可见光）
-  else if(w<440){r=-(w-440)/60;g=0;b=1}
+  if(w<440){r=-(w-440)/60;g=0;b=1}                // 390~440：紫→蓝
   else if(w<490){r=0;g=(w-440)/50;b=1}
   else if(w<510){r=0;g=1;b=-(w-510)/20}
   else if(w<580){r=(w-510)/70;g=1;b=0}
   else if(w<645){r=1;g=-(w-645)/65;b=0}
-  else if(w<=780){r=1;g=0;b=0}
-  else{r=.5;g=0;b=0}                              // 红外：暗红示意（不可见光）
+  else{r=1;g=0;b=0}                               // 645~720：红
   let f=1;
-  if(w<380)f=clamp(.32-(380-w)/700,.07,.32);      // 紫外渐隐
-  else if(w<420)f=.3+.7*(w-380)/40;
-  else if(w>700&&w<=780)f=.3+.7*(780-w)/80;
-  else if(w>780)f=clamp(.42-(w-780)/1400,.06,.42); // 红外渐隐
+  if(w<420)f=.6+.4*(w-390)/30;                    // 紫端略微收暗（390nm 仍为清晰紫）
+  else if(w>690)f=.72+.28*(720-w)/30;             // 红端略微收暗（720nm 仍为饱和红）
   const gam=.8;
   return {r:Math.round(255*Math.pow(Math.max(0,r*f),gam)),
           g:Math.round(255*Math.pow(Math.max(0,g*f),gam)),
@@ -590,7 +654,7 @@ const I18N={
   helpTitle:{zh:'帮助',en:'Help'},
   tip:{zh:'打赏',en:'Tip'}, tipTitle:{zh:'请作者喝杯咖啡',en:'Buy the author a coffee'},
   langTitle:{zh:'Switch to English',en:'切换为中文'}, langLabel:{zh:'EN',en:'中'},
-  hLib:{zh:'元件库',en:'ELEMENTS'}, hProp:{zh:'属性',en:'PROPERTIES'},
+  hLib:{zh:'元件',en:'OPTICS'}, hSources:{zh:'光源',en:'SOURCES'}, hProp:{zh:'属性',en:'PROPERTIES'}, hElem:{zh:'元件',en:'ELEMENTS'},
   hScenes:{zh:'示例场景',en:'EXAMPLES'}, hConfig:{zh:'配置存档',en:'CONFIG'}, hTips:{zh:'提示',en:'TIPS'},
   cfgExport:{zh:'导出配置',en:'Export'}, cfgLoad:{zh:'加载配置',en:'Load'},
   zoomIn:{zh:'放大',en:'Zoom in'}, zoomOut:{zh:'缩小',en:'Zoom out'}, zoomFit:{zh:'适配视图',en:'Fit view'},
@@ -633,14 +697,36 @@ const I18N={
   mtP:{zh:'功率',en:'Power'}, mtI:{zh:'光强',en:'Intensity'}, mtRays:{zh:'光线',en:'Rays'},
   mtPol:{zh:'偏振',en:'Pol'}, mtUnpol:{zh:'自然光',en:'unpol'}, mtMixed:{zh:'混合',en:'mixed'},
   mtNo:{zh:'无光入射',en:'No light'},
+  mtPin:{zh:'入射',en:'In'}, mtPout:{zh:'透射',en:'Out'}, mtTrans:{zh:'透过率',en:'Transmit'}, mtInPol:{zh:'入射偏振',en:'In pol'},
+  mtMeter:{zh:'功率计',en:'Meter'}, mtAnalyzer:{zh:'检偏器',en:'Analyzer'}, mtPulse:{zh:'脉冲测量仪',en:'Pulse'},
+  hScale:{zh:'比例尺 / 标度',en:'SCALE'}, scaleHint:{zh:'长度测量与脉冲色散都按此标度计算（默认 1 格 = 1 cm，随时可改）。',en:'Length & pulse dispersion use this scale (default 1 cell = 1 cm, editable anytime).'},
+  l_pulse:{zh:'脉宽 fs',en:'Pulse fs'}, l_gdd0:{zh:'初始啁啾 GDD fs²',en:'Init chirp fs²'},
+  l_bw:{zh:'谱宽 Δλ nm',en:'Bandwidth Δλ nm'},
+  l_lamProp:{zh:'传播波长 A nm',en:'Prop. λ (A) nm'}, l_lamShow:{zh:'显示波长 B nm',en:'Display λ (B) nm'},
+  l_csNote:{zh:'以 A 波长传播与色散计算，仅以 B 波长的颜色显示（如 2000nm 红外用 660nm 红光显示）。',en:'Propagates & disperses at λ A, rendered in the color of λ B (e.g. 2000 nm IR shown as 660 nm red).'},
+  l_thLens:{zh:'透镜厚度 格',en:'Thickness cell'},
+  l_dispOn:{zh:'自定义色散（对脉冲）',en:'Custom dispersion (pulse)'},
+  l_cGD:{zh:'一阶 群延迟 fs',en:'1st GD fs'}, l_cGDD:{zh:'二阶 GDD fs²',en:'2nd GDD fs²'},
+  l_cTOD:{zh:'三阶 TOD fs³',en:'3rd TOD fs³'}, l_cFOD:{zh:'四阶 FOD fs⁴',en:'4th FOD fs⁴'},
+  tbSelect:{zh:'默认指针（取消放置/标尺）',en:'Default pointer (cancel place/ruler)'},
+  tbHTune:{zh:'左右微调（拖动）',en:'Drag to nudge ◄►'}, tbVTune:{zh:'上下微调（拖动）',en:'Drag to nudge ▲▼'},
+  tbRotL:{zh:'左旋 90°',en:'Rotate −90°'}, tbRotR:{zh:'右旋 90°',en:'Rotate +90°'}, tbDel:{zh:'删除',en:'Delete'},
+  puWave:{zh:'波形',en:'Waveform'}, puCW:{zh:'连续光 (CW)',en:'Continuous (CW)'}, puPulse:{zh:'脉冲光',en:'Pulsed'},
+  puTL:{zh:'变换极限',en:'TL'}, puOut:{zh:'输出脉宽',en:'Output'}, puGDD:{zh:'累积GDD',en:'GDD'}, puTOD:{zh:'TOD',en:'TOD'},
+  puBW:{zh:'谱宽',en:'Bandwidth'}, puGD:{zh:'群延迟',en:'Group delay'},
+  puChirpUp:{zh:'正啁啾',en:'up-chirp'}, puChirpDn:{zh:'负啁啾',en:'down-chirp'}, puChirpNo:{zh:'近变换极限',en:'near TL'},
+  puNote:{zh:'默认介质为空气；玻璃元件按厚度、自定义元件按设定值累积色散。',en:'Default medium is air; glass adds GDD by thickness, custom element by your values.'},
+  puWaveTitle:{zh:'脉冲波形 I(t)',en:'Pulse I(t)'}, puWaveT:{zh:'时间窗',en:'window'},
+  puWaveTL:{zh:'虚线=变换极限',en:'dashed = TL'},
+  fsTitle:{zh:'全屏',en:'Fullscreen'}, fsEnter:{zh:'进入全屏',en:'Enter fullscreen'}, fsExit:{zh:'退出全屏 (Esc)',en:'Exit fullscreen (Esc)'},
   hMeasure:{zh:'测量',en:'MEASURE'},
-  mLen:{zh:'长度测量',en:'Length'}, mRuler:{zh:'测量长度',en:'Measure length'},
-  mScale:{zh:'比例尺 1格 =',en:'Scale 1 cell ='}, mLenNo:{zh:'未测量（点工具后在画布点两点）',en:'Not measured (click two points)'},
+  mLen:{zh:'长度测量',en:'Length'}, mRuler:{zh:'直尺',en:'Ruler'},
+  mScale:{zh:'1 格 =',en:'1 cell ='}, mLenNo:{zh:'未测量（点工具后在画布点两点）',en:'Not measured (click two points)'},
   mClear:{zh:'清除标尺',en:'Clear'}, mCells:{zh:'格',en:'cells'},
   mInt:{zh:'光强 / 功率测量',en:'Intensity / Power'}, mAddDet:{zh:'放置探测器',en:'Place detector'},
   undoTitle:{zh:'撤回',en:'Undo'}, clearTitle:{zh:'清空画布',en:'Clear canvas'},
   d3FoldT:{zh:'收起 / 展开面板',en:'Collapse / expand panel'},
-  mDetNo:{zh:'尚无探测器，点上方按钮放置',en:'No detector yet'},
+  mDetNo:{zh:'放置功率计或检偏器后显示读数',en:'Place a meter or analyzer to see readings'},
   l_ox:{zh:'水平微调 格',en:'Shift X cell'}, l_oy:{zh:'垂直微调 格',en:'Shift Y cell'},
   l_poly:{zh:'复色光（白光）',en:'White light'}, l_lam:{zh:'波长 nm',en:'Wavelength nm'},
   l_width:{zh:'光束宽度 px',en:'Beam width px'}, l_bri:{zh:'亮度',en:'Brightness'},
@@ -676,8 +762,8 @@ const I18N={
   d3Persp:{zh:'透视',en:'Persp'}, d3Ortho:{zh:'正交',en:'Ortho'}, d3Zoom:{zh:'缩放',en:'Zoom'},
   d3Iso:{zh:'等轴',en:'Iso'}, d3Top:{zh:'俯视',en:'Top'}, d3Front:{zh:'正视',en:'Front'},
   d3Reset:{zh:'重置视角',en:'Reset'}, d3Spin:{zh:'自转',en:'Spin'},
-  d3Night:{zh:'夜间',en:'Night'}, d3Board:{zh:'面包板',en:'Board'},
-  d3Bri:{zh:'环境亮度',en:'Ambient'}, d3Bloom:{zh:'光束辉光',en:'Glow'},
+  d3Night:{zh:'夜间',en:'Night'}, d3Board:{zh:'面包板',en:'Board'}, d3Reflect:{zh:'倒影',en:'Reflection'},
+  d3Bri:{zh:'环境亮度',en:'Ambient'}, d3Bloom:{zh:'光束辉光',en:'Glow'}, d3Shadow:{zh:'元件阴影',en:'Shadow'},
   d3Light:{zh:'光源',en:'Light'}, d3Area:{zh:'面光源',en:'Area'}, d3Point:{zh:'点光源',en:'Point'},
   d3Bg:{zh:'背景',en:'Background'},
   d3Quality:{zh:'渲染',en:'Render'}, d3ExpRes:{zh:'导出倍率',en:'Export ×'},
@@ -724,6 +810,12 @@ const ELEMS={
   source:{name:'激光源',en:'Laser',half:.3,
     defaults:()=>({rot:0,lam:632,width:6,bri:1,poly:false,polMode:'unpol',polAng:0}),
     icon:'<svg viewBox="0 0 36 36"><rect x="3" y="11" width="19" height="14" rx="4" fill="#141b26" stroke="#cfd8e3" stroke-width="2"/><circle cx="24.5" cy="18" r="2.6" fill="#ffb454"/><path d="M28 18h5.5m-3-3l3 3-3 3" stroke="#ffb454" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
+  fsource:{name:'飞秒激光器',en:'Fs Laser',half:.3,
+    defaults:()=>({rot:0,lam:800,width:6,bri:1,pulse:30,gdd0:0,polMode:'linear',polAng:0}),
+    icon:'<svg viewBox="0 0 36 36"><rect x="3" y="10" width="18" height="16" rx="4" fill="#141b26" stroke="#ff8a5c" stroke-width="2"/><path d="M6 18h3l1.5-5 2 10 2-8 1.5 3h2" stroke="#ffd36a" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="24.5" cy="18" r="2.4" fill="#ff8a5c"/><path d="M28 18h5.5m-3-3l3 3-3 3" stroke="#ff8a5c" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
+  csource:{name:'自定义激光器',en:'Custom Laser',half:.3,
+    defaults:()=>({rot:0,lam:2000,lamShow:660,width:6,bri:1,poly:false,polMode:'unpol',polAng:0}),
+    icon:'<svg viewBox="0 0 36 36"><rect x="3" y="11" width="18" height="14" rx="4" fill="#141b26" stroke="#8b7bd8" stroke-width="2"/><text x="12" y="22" font-size="10" font-style="italic" font-family="Georgia,serif" fill="#c9bcff" text-anchor="middle">&#955;</text><circle cx="24.5" cy="18" r="2.4" fill="#ff5a5a"/><path d="M28 18h5.5m-3-3l3 3-3 3" stroke="#ff5a5a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
   mirror:{name:'反射镜',en:'Mirror',half:.46,
     defaults:()=>({rot:45}),
     icon:'<svg viewBox="0 0 36 36"><path d="M7 29L29 7" stroke="#e8eef7" stroke-width="3.4" stroke-linecap="round"/><path d="M13 30l-4 4M20 23l-4 4M27 16l-4 4M34 9l-4 4" stroke="#7d8da4" stroke-width="1.5"/></svg>'},
@@ -731,10 +823,10 @@ const ELEMS={
     defaults:()=>({rot:0,f:2}),
     icon:'<svg viewBox="0 0 36 36"><path d="M6 14Q18 23 30 14" stroke="#e8eef7" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M12.5 21.5l-3.5 4M19 22.5l-3.5 4M25.5 21.5l-3.5 4" stroke="#7d8da4" stroke-width="1.5"/></svg>'},
   lensCX:{name:'凸透镜',en:'Convex Lens',half:.42,
-    defaults:()=>({rot:90,f:2}),
+    defaults:()=>({rot:90,f:2,th:0.17}),
     icon:'<svg viewBox="0 0 36 36"><path d="M18 4Q27 18 18 32Q9 18 18 4Z" stroke="#9fd0ff" stroke-width="2" fill="rgba(120,170,230,.15)"/></svg>'},
   lensCV:{name:'凹透镜',en:'Concave Lens',half:.42,
-    defaults:()=>({rot:90,f:-2}),
+    defaults:()=>({rot:90,f:-2,th:0.27}),
     icon:'<svg viewBox="0 0 36 36"><path d="M11 4Q16 18 11 32L25 32Q20 18 25 4Z" stroke="#9fd0ff" stroke-width="2" fill="rgba(120,170,230,.15)"/></svg>'},
   splitter:{name:'分束器',en:'Beam Splitter',half:.46,
     defaults:()=>({rot:135,ratio:50}),
@@ -764,9 +856,15 @@ const ELEMS={
   bbo:{name:'倍频晶体',en:'SHG · BBO',half:.4,
     defaults:()=>({rot:90,effMax:80,pmAngle:0,accept:25}),
     icon:'<svg viewBox="0 0 36 36"><rect x="12.5" y="5" width="11" height="26" rx="1.5" fill="rgba(150,120,235,.22)" stroke="#b69cff" stroke-width="2"/><path d="M5 12h7m-7 0l2.6-2.1m-2.6 2.1l2.6 2.1" stroke="#ff5a5a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 24h7m0 0l-2.6-2.1m2.6 2.1l-2.6 2.1" stroke="#39d98a" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
-  meter:{name:'探测器',en:'Power meter',half:.5,
+  meter:{name:'功率计',en:'Power meter',half:.5,
     defaults:()=>({rot:0}),
     icon:'<svg viewBox="0 0 36 36"><rect x="5" y="9" width="26" height="18" rx="3" fill="#161d29" stroke="#46546b" stroke-width="2"/><path d="M11 23a7 7 0 0 1 14 0" fill="none" stroke="#39d98a" stroke-width="2"/><path d="M18 23l5-5" stroke="#ffb454" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="23" r="1.6" fill="#ffb454"/></svg>'},
+  analyzer:{name:'检偏器',en:'Analyzer',half:.42,
+    defaults:()=>({rot:90,axis:0}),
+    icon:'<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="12.5" fill="rgba(120,150,200,.12)" stroke="#9fb6d6" stroke-width="2"/><path d="M12 8.6l2.4 18.8M18 6.5v23M24 8.6l-2.4 18.8" stroke="#9fb6d6" stroke-width="1.3"/><circle cx="18" cy="18" r="4.6" fill="#0c1a14" stroke="#39d98a" stroke-width="1.7"/><path d="M18 18l3-2.2" stroke="#39d98a" stroke-width="1.6" stroke-linecap="round"/></svg>'},
+  pulsemeter:{name:'脉冲测量仪',en:'Pulse meter',half:.5,
+    defaults:()=>({rot:0}),
+    icon:'<svg viewBox="0 0 36 36"><rect x="4" y="9" width="28" height="18" rx="3" fill="#0c1622" stroke="#46546b" stroke-width="2"/><path d="M7 18h4l2-7 2.5 12 2.5-9 2 6 1.5-2h6" stroke="#5fd0ff" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
   polarizer:{name:'偏振片',en:'Polarizer',half:.42,
     defaults:()=>({rot:90,axis:0}),
     icon:'<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="12.5" fill="rgba(120,150,200,.12)" stroke="#9fb6d6" stroke-width="2"/><path d="M11 8.5v19M18 6.5v23M25 8.5v19" stroke="#9fb6d6" stroke-width="1.5"/><path d="M7.5 18h21" stroke="#ffb454" stroke-width="1.8" stroke-dasharray="3 2"/></svg>'},
@@ -777,7 +875,7 @@ const ELEMS={
     defaults:()=>({rot:135,axis:0}),
     icon:'<svg viewBox="0 0 36 36"><rect x="8.5" y="8.5" width="19" height="19" rx="2.5" stroke="#bcd0e8" fill="rgba(130,150,180,.12)" stroke-width="2"/><path d="M8.5 27.5L27.5 8.5" stroke="#ffb454" stroke-width="2"/><circle cx="13.5" cy="22.5" r="1.5" fill="#9fd0ff"/><path d="M23 8.5v6.5" stroke="#ff8aa0" stroke-width="1.8"/></svg>'},
   custom:{name:'自定义',en:'Custom',half:.46,
-    defaults:()=>({rot:90,outMode:'rel',dTheta:30,absTheta:0,lamMode:'keep',lamSet:550,lamShift:0,trans:100,splitOn:false,splitRatio:30}),
+    defaults:()=>({rot:90,outMode:'rel',dTheta:30,absTheta:0,lamMode:'keep',lamSet:550,lamShift:0,trans:100,splitOn:false,splitRatio:30,dispOn:false,cGD:0,cGDD:0,cTOD:0,cFOD:0}),
     icon:'<svg viewBox="0 0 36 36"><rect x="6" y="6" width="24" height="24" rx="7" fill="none" stroke="#8b97ab" stroke-width="2" stroke-dasharray="4 3"/><text x="18" y="24.5" font-size="17" font-style="italic" font-family="Georgia,serif" fill="#dde6f2" text-anchor="middle">&#402;</text></svg>'}
 };
 
@@ -789,11 +887,40 @@ const view={x:0,y:0,s:1};
 let selSet=new Set();
 let GID=1;
 let placing=null;
-let measuring=false, measures=[], measureLive=null, mmPerCell=10;   // 标尺：模式 / 已完成多条 / 进行中 / 比例尺(mm每格)
+let measuring=false, measures=[], measureLive=null, cmPerCell=1;   // 标尺：模式 / 已完成多条 / 进行中 / 比例尺(cm每格)
 let hoverCell=null;
 let needTrace=true, needDraw=true;
 let SEGS=[], HITS=[];
 const METER=new Map();   // 探测器累计：元件对象 → {pw,n,lamSum,polSet}
+const PULSEM=new Map();  // 脉冲测量仪累计：元件对象 → {n,pw,lamW,pulse,tau0,gddW,todW,fodW,pI}
+
+/* ---------- 超快/色散模型 ----------
+   GDD(群延迟色散 φ², fs²) 主导脉冲展宽：τ_out = τ0·√(1+(4ln2·GDD/τ0²)²)；高阶用谱矩法计算。
+   默认介质为空气；玻璃元件按物理厚度累积 GDD。比例尺(cmPerCell)决定物理路径长度。*/
+const AIR_GVD=0.02;      // 空气群速色散 ≈ 0.02 fs²/mm (~800nm，很小)
+const GLASS_GVD=40;      // 代表性光学玻璃 ≈ 40 fs²/mm (近熔石英@800nm)
+const cellsToMM=cells=>cells*cmPerCell*10;            // 格 → mm（1 格 = cmPerCell cm）
+function addPulseGDD(r,gdd,tod){                      // 给脉冲光线累积色散
+  if(!r||!r.isPulse)return;
+  r.gdd=(r.gdd||0)+(gdd||0);
+  if(tod)r.tod=(r.tod||0)+tod;
+}
+// 高斯脉冲含任意阶谱相位时的输出脉宽(FWHM, fs)：σ_t² = σ_TL² + Var_谱[群延迟]
+function pulseWidth(tau0,gdd,tod,fod){
+  if(!(tau0>0))return 0;
+  const sigI=tau0/2.3548;          // 强度 RMS (fs)
+  const sSI=1/(2*sigI);            // 谱强度 RMS (rad/fs)
+  let wsum=0,m1=0,m2=0;
+  const N=160,span=5*sSI;
+  for(let i=0;i<=N;i++){
+    const O=-span+2*span*i/N;
+    const w=Math.exp(-O*O/(2*sSI*sSI));
+    const tg=(gdd||0)*O+0.5*(tod||0)*O*O+(fod||0)*O*O*O/6;   // 群延迟 dφ/dΩ
+    wsum+=w; m1+=w*tg; m2+=w*tg*tg;
+  }
+  const mean=m1/wsum, varTg=Math.max(0,m2/wsum-mean*mean);
+  return 2.3548*Math.sqrt(sigI*sigI+varTg);   // 输出 FWHM (fs)
+}
 
 function groupKeys(g){
   const a=[];
@@ -834,7 +961,7 @@ function surfsOf(k,e){
   const c=v(cx,cy);
   const type=e.type;
   let ang=(e.props.rot||0)*D2R;
-  if(type==='source')ang+=Math.PI/2;
+  if(type==='source'||type==='fsource'||type==='csource')ang+=Math.PI/2;
   const t=v(Math.cos(ang),Math.sin(ang));     // 界面切向
   const nrm=v(-t.y,t.x);                       // 界面法向
   const baseHalf=ELEMS[type].half*CELL;
@@ -872,7 +999,7 @@ function surfsOf(k,e){
   }
   // 单段元件（含 slit 的遮挡段）
   let half=baseHalf;
-  if(type==='source')half=Math.max(half,(e.props.width||6)/2+4);
+  if(type==='source'||type==='fsource'||type==='csource')half=Math.max(half,(e.props.width||6)/2+4);
   return [{c,t,n:nrm,half,e,surf:'main'}];
 }
 
@@ -886,6 +1013,10 @@ function emit(k,e,Q){
   const wid=P.width;
   const bri=P.bri===undefined?1:P.bri;
   const pol=(P.polMode==='linear')?(P.polAng||0):null;   // 线偏振角(度) 或 null(自然光)
+  // 飞秒激光器：每条子光线带脉冲信息（变换极限脉宽 tau0、中心波长、初始啁啾 gdd0）
+  const pulse=(e.type==='fsource')?{isPulse:true,tau0:(P.pulse||30),lam0:P.lam,gdd:(P.gdd0||0),tod:0,fod:0}:null;
+  // 自定义激光器：以 A 波长(P.lam)参与传播/色散计算，仅用 B 波长(lamShow)决定显示颜色
+  const lamShow=(e.type==='csource')?(P.lamShow||P.lam):undefined;
   const apX=8;                         // 出光口在元件本地坐标的位置
   // 渲染精细度联动光线密度：流畅档稀疏省负荷，精细档加密最好看
   const polyStep=(RQ==='low'?20:(RQ==='high'?7:12));   // 复色光采样波长间隔 nm
@@ -900,13 +1031,16 @@ function emit(k,e,Q){
   }
   // 宽光束用一排平行子光线模拟，经过透镜会真实收束到焦点
   let K=Math.max(1,Math.round(wid/subSpace));
-  K=Math.min(K,150);                   // 上限，避免极宽光束拖慢
+  K=Math.min(K,110);                   // 上限，避免极宽光束拖慢（降档以提性能）
   const dw=K>1?wid/K:wid;
   const drawW=K>1?Math.min(3.2,dw*1.1):wid;
   for(let b=0;b<K;b++){
     const off=K>1?(-wid/2+dw*(b+0.5)):0;
     const start=add(add(c,mul(n,off)),mul(d,apX));
-    Q.push({p:start,d,lam:P.lam,w:drawW,I:(K>1?0.85:1)*bri,gen:0,pol});
+    const ray={p:start,d,lam:P.lam,w:drawW,I:(K>1?0.85:1)*bri,gen:0,pol};
+    if(lamShow!==undefined)ray.lamShow=lamShow;
+    if(pulse){ray.isPulse=true;ray.tau0=pulse.tau0;ray.lam0=pulse.lam0;ray.gdd=pulse.gdd;ray.tod=pulse.tod;ray.fod=pulse.fod;}
+    Q.push(ray);
   }
 }
 
@@ -915,11 +1049,14 @@ function interact(r,S,pt,Q){
   const e=S.e, type=e.type, P=e.props;
   const go=(d,I,lam,dropPoly,pol)=>{
     d=norm(d);
-    Q.push({p:add(pt,mul(d,0.05)),d,lam:(lam===undefined?r.lam:lam),w:r.w,I,gen:r.gen+1,poly:(dropPoly?false:r.poly),pol:(pol===undefined?r.pol:pol)});
+    const nr={p:add(pt,mul(d,0.05)),d,lam:(lam===undefined?r.lam:lam),w:r.w,I,gen:r.gen+1,poly:(dropPoly?false:r.poly),pol:(pol===undefined?r.pol:pol)};
+    if(r.isPulse){nr.isPulse=true;nr.tau0=r.tau0;nr.lam0=r.lam0;nr.gd=r.gd||0;nr.gdd=r.gdd||0;nr.tod=r.tod||0;nr.fod=r.fod||0;}   // 传递脉冲/累积色散
+    if(r.lamShow!==undefined&&!(lam!==undefined&&lam!==r.lam))nr.lamShow=r.lamShow;   // 自定义激光器：真实波长未改变时沿用显示波长
+    Q.push(nr);
   };
-  const absorb=()=>{HITS.push({p:pt,lam:r.lam,I:r.I,poly:r.poly,pol:r.pol})};
+  const absorb=()=>{HITS.push({p:pt,lam:r.lam,I:r.I,poly:r.poly,pol:r.pol,lamShow:r.lamShow})};
   if(type==='screen'){absorb();return}
-  if(type==='source')return;
+  if(type==='source'||type==='fsource'||type==='csource')return;
   if(type==='mirror'){
     if(dot(r.d,S.n)>0)go(sub(r.d,mul(S.n,2*dot(r.d,S.n))),r.I);
     else absorb();
@@ -936,6 +1073,7 @@ function interact(r,S,pt,Q){
     return;
   }
   if(type==='lensCX'||type==='lensCV'){
+    addPulseGDD(r,cellsToMM(P.th||0.17)*GLASS_GVD);   // 透镜玻璃色散(随厚度)
     const f=P.f*CELL;
     let a=S.n;
     if(dot(r.d,a)<0)a=mul(a,-1);
@@ -986,6 +1124,7 @@ function interact(r,S,pt,Q){
   if(type==='plate'){
     // n 指向玻璃外侧。d·n<0 表示进入玻璃，否则离开玻璃
     const entering=dot(r.d,S.n)<0;
+    if(!entering)addPulseGDD(r,cellsToMM(P.th||0.3)*GLASS_GVD);   // 离开玻璃时计入该板色散(整段一次)
     const eta=entering?(1/indexOf(P,r.lam)):indexOf(P,r.lam);
     const rd=refract(r.d,S.n,eta);
     if(rd)go(rd,r.I*0.985);
@@ -994,6 +1133,7 @@ function interact(r,S,pt,Q){
   }
   if(type==='prism'){
     const entering=dot(r.d,S.n)<0;
+    if(!entering)addPulseGDD(r,cellsToMM(P.size||0.8)*GLASS_GVD);   // 棱镜玻璃色散(随尺寸)
     const eta=entering?(1/indexOf(P,r.lam)):indexOf(P,r.lam);
     const rd=refract(r.d,S.n,eta);
     if(rd)go(rd,r.I*0.98,undefined,true);
@@ -1058,6 +1198,26 @@ function interact(r,S,pt,Q){
     absorb();
     return;
   }
+  if(type==='analyzer'){
+    // 检偏器:按 Malus 定律检偏并读出透射功率,光沿检偏轴继续出射
+    const ax=P.axis||0;
+    let Iout;
+    if(r.pol==null)Iout=r.I*0.5;
+    else{const d2=(r.pol-ax)*D2R;Iout=r.I*Math.cos(d2)*Math.cos(d2);}
+    let m=METER.get(e); if(!m){m={pw:0,pwIn:0,n:0,lamSum:0,polSet:new Set()};METER.set(e,m);}
+    m.pwIn+=r.I; m.pw+=Iout; m.n++; m.lamSum+=r.lam*Iout; if(r.pol!=null)m.polSet.add(Math.round(r.pol));
+    if(Iout>0.004)go(r.d,Iout,undefined,false,ax);   // 出射沿检偏轴线偏振
+    else absorb();
+    return;
+  }
+  if(type==='pulsemeter'){
+    // 脉冲测量仪：检测波形(连续/脉冲)，对脉冲光按累积色散给出展宽后脉宽
+    let m=PULSEM.get(e); if(!m){m={n:0,pw:0,lamW:0,pulse:false,tau0:0,gdW:0,gddW:0,todW:0,fodW:0,pI:0};PULSEM.set(e,m);}
+    m.n++; m.pw+=r.I; m.lamW+=r.lam*r.I;
+    if(r.isPulse){m.pulse=true; m.tau0=r.tau0; m.gdW+=(r.gd||0)*r.I; m.gddW+=(r.gdd||0)*r.I; m.todW+=(r.tod||0)*r.I; m.fodW+=(r.fod||0)*r.I; m.pI+=r.I;}
+    absorb();
+    return;
+  }
   if(type==='custom'){
     let lam=r.lam;
     const recolor=(P.lamMode==='set'||P.lamMode==='shift');
@@ -1075,6 +1235,8 @@ function interact(r,S,pt,Q){
     else if(P.outMode==='mirror')d=sub(r.d,mul(S.n,2*dot(r.d,S.n)));
     else if(P.outMode==='rel')d=rotv(r.d,P.dTheta*D2R);
     else{const a=P.absTheta*D2R;d=v(Math.cos(a),Math.sin(a))}
+    // 自定义色散：一阶(群延迟 fs) / 二阶(GDD fs²) / 三阶(TOD fs³) / 四阶(FOD fs⁴)
+    if(P.dispOn&&r.isPulse){r.gd=(r.gd||0)+(P.cGD||0);r.gdd=(r.gdd||0)+(P.cGDD||0);r.tod=(r.tod||0)+(P.cTOD||0);r.fod=(r.fod||0)+(P.cFOD||0);}
     if(mainI>0.012)go(d,mainI,lam,recolor);
     if(reflI>0.012)go(sub(r.d,mul(S.n,2*dot(r.d,S.n))),reflI,lam,recolor);
     // 能量透过率作为转换效率：未被转换的 (1-Tr) 部分以原波长直接穿过
@@ -1086,10 +1248,10 @@ function interact(r,S,pt,Q){
 }
 
 function trace(){
-  SEGS=[];HITS=[];METER.clear();
+  SEGS=[];HITS=[];METER.clear();PULSEM.clear();
   const Q=[], elems=[];
   for(const [k,e] of grid){
-    if(e.type==='source')emit(k,e,Q);
+    if(e.type==='source'||e.type==='fsource'||e.type==='csource')emit(k,e,Q);
     const ss=surfsOf(k,e);
     for(let q=0;q<ss.length;q++)elems.push(ss[q]);
   }
@@ -1110,11 +1272,12 @@ function trace(){
       if(Math.abs(u)<=S.half){bs=s;bestS=S}
     }
     if(!bestS){
-      SEGS.push({a:r.p,b:add(r.p,mul(r.d,1e5)),lam:r.lam,w:r.w,I:r.I,poly:r.poly});
+      SEGS.push({a:r.p,b:add(r.p,mul(r.d,1e5)),lam:r.lam,w:r.w,I:r.I,poly:r.poly,lamShow:r.lamShow});
       continue;
     }
     const pt=add(r.p,mul(r.d,bs));
-    SEGS.push({a:r.p,b:pt,lam:r.lam,w:r.w,I:r.I,poly:r.poly});
+    if(r.isPulse)r.gdd=(r.gdd||0)+cellsToMM(bs/CELL)*AIR_GVD;   // 该段空气色散（默认介质=空气）
+    SEGS.push({a:r.p,b:pt,lam:r.lam,w:r.w,I:r.I,poly:r.poly,lamShow:r.lamShow});
     interact(r,bestS,pt,Q);
   }
 }
@@ -1131,6 +1294,9 @@ function rr(c,x,y,w,h,r){
   c.closePath();
 }
 
+// 读数里把“数字”用下划线突出，与物理量(标签)区分
+const nv=x=>'<span class="mval">'+x+'</span>';
+const nvb=x=>'<span class="mval big"><b>'+x+'</b></span>';
 function meterText(e){
   const m=METER.get(e);
   if(!m||!m.n)return tr('mtNo');
@@ -1138,10 +1304,86 @@ function meterText(e){
   const inten=m.pw/(ELEMS.meter.half*2);
   let polTxt;
   if(m.polSet.size===0)polTxt=tr('mtUnpol');
-  else if(m.polSet.size===1)polTxt=[...m.polSet][0]+'°';
+  else if(m.polSet.size===1)polTxt=nv([...m.polSet][0]+'°');
   else polTxt=tr('mtMixed');
-  return tr('mtP')+' <b>'+m.pw.toFixed(2)+'</b> · '+tr('mtI')+' '+inten.toFixed(2)+'<br>'+
-    tr('mtRays')+' '+m.n+' · λ̄ '+meanLam.toFixed(0)+'nm<br>'+tr('mtPol')+' '+polTxt;
+  return tr('mtP')+' '+nvb(m.pw.toFixed(2))+' · '+tr('mtI')+' '+nv(inten.toFixed(2))+'<br>'+
+    tr('mtRays')+' '+nv(m.n)+' · λ̄ '+nv(meanLam.toFixed(0)+' nm')+'<br>'+tr('mtPol')+' '+polTxt;
+}
+function analyzerText(e){
+  const m=METER.get(e);
+  if(!m||!m.n)return tr('mtNo');
+  const meanLam=m.lamSum/(m.pw||1);
+  const tRatio=m.pwIn>0?(m.pw/m.pwIn*100):0;
+  let polTxt;
+  if(m.polSet.size===0)polTxt=tr('mtUnpol');
+  else if(m.polSet.size===1)polTxt=nv([...m.polSet][0]+'°');
+  else polTxt=tr('mtMixed');
+  return tr('mtPin')+' '+nv((m.pwIn||0).toFixed(2))+' → '+tr('mtPout')+' '+nvb(m.pw.toFixed(2))+'<br>'+
+    tr('mtTrans')+' '+nv(tRatio.toFixed(0)+'%')+' · λ̄ '+nv(meanLam.toFixed(0)+' nm')+'<br>'+tr('mtInPol')+' '+polTxt;
+}
+function pulseText(e){
+  const m=PULSEM.get(e);
+  if(!m||!m.n)return tr('mtNo');
+  const meanLam=m.lamW/(m.pw||1);
+  if(!m.pulse){          // 连续光 CW（普通激光器/无脉冲信息）
+    return tr('puWave')+' <b>'+tr('puCW')+'</b><br>'+tr('mtP')+' '+nv(m.pw.toFixed(2))+' · λ̄ '+nv(meanLam.toFixed(0)+' nm');
+  }
+  const tau0=m.tau0, gdd=m.pI>0?m.gddW/m.pI:0, tod=m.pI>0?m.todW/m.pI:0,
+        fod=m.pI>0?m.fodW/m.pI:0, gd=m.pI>0?m.gdW/m.pI:0;
+  const tOut=pulseWidth(tau0,gdd,tod,fod);
+  const factor=tau0>0?tOut/tau0:1;
+  const dLam=0.441*meanLam*meanLam/(299.79*tau0);   // 谱宽 Δλ(高斯 TBP=0.441)
+  const chirp=Math.abs(gdd)>1?(gdd>0?tr('puChirpUp'):tr('puChirpDn')):tr('puChirpNo');
+  let s=tr('puWave')+' <b>'+tr('puPulse')+'</b> · λ̄ '+nv(meanLam.toFixed(0)+' nm')+'<br>';
+  s+=tr('puTL')+' '+nv(tau0.toFixed(1)+' fs')+' → '+tr('puOut')+' '+nvb(tOut.toFixed(1)+' fs')+' (×'+nv(factor.toFixed(2))+')<br>';
+  s+=tr('puGDD')+' '+nv(gdd.toFixed(0)+' fs²')+' · '+tr('puTOD')+' '+nv(tod.toFixed(0)+' fs³')+'<br>';
+  s+=tr('puBW')+' '+nv(dLam.toFixed(1)+' nm')+' · '+chirp;
+  if(Math.abs(gd)>1)s+='<br>'+tr('puGD')+' '+nv(gd.toFixed(0)+' fs');
+  return s;
+}
+// 脉冲时域波形 I(t)：高斯谱 × 谱相位 经离散傅里叶反变换得到强度包络
+function pulseProfile(tau0,gdd,tod,fod,T,N,M){
+  const sigI=tau0/2.3548, sigA=1/(Math.SQRT2*sigI);   // 谱场振幅 std (rad/fs)
+  N=N||96; M=M||110;
+  const span=4.2*sigA, Or=[],Ar=[],Ai=[];
+  for(let i=0;i<N;i++){
+    const O=-span+2*span*i/(N-1);
+    const amp=Math.exp(-O*O/(2*sigA*sigA));
+    const ph=0.5*(gdd||0)*O*O+(tod||0)*O*O*O/6+(fod||0)*O*O*O*O/24;
+    Or.push(O);Ar.push(amp*Math.cos(ph));Ai.push(amp*Math.sin(ph));
+  }
+  const pts=[]; let maxI=1e-12;
+  for(let mm=0;mm<M;mm++){
+    const t=-T+2*T*mm/(M-1);
+    let re=0,im=0;
+    for(let i=0;i<N;i++){const c=Math.cos(Or[i]*t),s=Math.sin(Or[i]*t);re+=Ar[i]*c-Ai[i]*s;im+=Ar[i]*s+Ai[i]*c;}
+    const I=re*re+im*im; if(I>maxI)maxI=I; pts.push({t,I});
+  }
+  return {pts,maxI};
+}
+function pulseWaveSVG(e){
+  const m=PULSEM.get(e);
+  if(!m||!m.n||!m.pulse)return '';
+  const tau0=m.tau0, gdd=m.pI>0?m.gddW/m.pI:0, tod=m.pI>0?m.todW/m.pI:0, fod=m.pI>0?m.fodW/m.pI:0;
+  const tOut=pulseWidth(tau0,gdd,tod,fod);
+  const T=Math.max(tOut,tau0)*2.4;                  // 时间窗
+  const out=pulseProfile(tau0,gdd,tod,fod,T);
+  const tl=pulseProfile(tau0,0,0,0,T);              // 变换极限参考
+  const W=244,H=92,pad=8,baseY=H-12,topY=8;
+  const norm=Math.max(out.maxI,tl.maxI);
+  const X=t=>pad+(t+T)/(2*T)*(W-2*pad);
+  const Y=I=>baseY-(I/norm)*(baseY-topY);
+  const path=prof=>prof.pts.map((p,i)=>(i?'L':'M')+X(p.t).toFixed(1)+' '+Y(p.I).toFixed(1)).join(' ');
+  const outD=path(out), tlD=path(tl);
+  const fillD='M'+X(-T).toFixed(1)+' '+baseY+' '+outD.slice(1)+' L'+X(T).toFixed(1)+' '+baseY+' Z';
+  return '<div class="pwave"><div class="ttl">'+tr('puWaveTitle')+' · '+tr('puWaveT')+' ±'+nv(T.toFixed(0)+' fs')+' · '+tr('puWaveTL')+'</div>'+
+    '<svg viewBox="0 0 '+W+' '+H+'">'+
+    '<line x1="'+pad+'" y1="'+baseY+'" x2="'+(W-pad)+'" y2="'+baseY+'" style="stroke:var(--line)" stroke-width="1"/>'+
+    '<line x1="'+(W/2)+'" y1="'+topY+'" x2="'+(W/2)+'" y2="'+baseY+'" style="stroke:var(--line)" stroke-width="1" stroke-dasharray="2 3"/>'+
+    '<path d="'+tlD+'" fill="none" style="stroke:var(--dim)" stroke-width="1.2" stroke-dasharray="3 3" opacity=".85"/>'+
+    '<path d="'+fillD+'" style="fill:var(--acc)" opacity="0.16"/>'+
+    '<path d="'+outD+'" fill="none" style="stroke:var(--acc)" stroke-width="2" stroke-linejoin="round"/>'+
+    '</svg></div>';
 }
 function drawElem(k,e){
   const p=k.split(',');
@@ -1151,8 +1393,9 @@ function drawElem(k,e){
   ctx.translate(cx,cy);
   ctx.rotate((e.props.rot||0)*D2R);
   ctx.lineCap='round';
-  if(e.type==='source'){
-    const col=e.props.poly?(T.light?{r:120,g:110,b:90}:{r:255,g:250,b:240}):wlRGB(e.props.lam);
+  if(e.type==='source'||e.type==='fsource'||e.type==='csource'){
+    const showLam=(e.type==='csource')?(e.props.lamShow||e.props.lam):e.props.lam;   // 自定义激光器按显示波长上色
+    const col=e.props.poly?(T.light?{r:120,g:110,b:90}:{r:255,g:250,b:240}):wlRGB(showLam);
     const bri=e.props.bri===undefined?1:e.props.bri;
     const ap=Math.max(7,e.props.width);          // 出光口半高随光束宽度
     const bodyH=ap+12;                            // 外壳比光口略大
@@ -1180,6 +1423,13 @@ function drawElem(k,e){
     // 中心亮点
     ctx.fillStyle=css(col,Math.min(1,bri));
     ctx.beginPath();ctx.arc(8,0,2.4,0,TAU);ctx.fill();
+    // 飞秒激光器：机身上画脉冲序列标记
+    if(e.type==='fsource'){
+      ctx.strokeStyle=T.light?'#c2630f':'#ffd36a'; ctx.lineWidth=1.6; ctx.lineJoin='round';
+      ctx.beginPath();
+      ctx.moveTo(-26,3);ctx.lineTo(-22,3);ctx.lineTo(-20,-6);ctx.lineTo(-17,6);ctx.lineTo(-14,-3);ctx.lineTo(-12,3);ctx.lineTo(-8,3);
+      ctx.stroke();
+    }
   }else if(e.type==='mirror'){
     ctx.strokeStyle=T.mirror;
     ctx.lineWidth=4;
@@ -1209,21 +1459,23 @@ function drawElem(k,e){
     ctx.strokeStyle=T.lens;
     ctx.fillStyle=T.lensFill;
     ctx.lineWidth=2.5;
+    const tc=(e.props.th||0.17)*CELL;     // 中心厚度(随 th)
     ctx.beginPath();
     ctx.moveTo(-h,0);
-    ctx.quadraticCurveTo(0,-16,h,0);
-    ctx.quadraticCurveTo(0,16,-h,0);
+    ctx.quadraticCurveTo(0,-tc,h,0);
+    ctx.quadraticCurveTo(0,tc,-h,0);
     ctx.closePath();
     ctx.fill();ctx.stroke();
   }else if(e.type==='lensCV'){
     ctx.strokeStyle=T.lens;
     ctx.fillStyle=T.lensFill;
     ctx.lineWidth=2.5;
+    const eh=(e.props.th||0.27)*CELL/2, w=eh*0.23;   // 边缘厚度(随 th)
     ctx.beginPath();
-    ctx.moveTo(-h,-13);
-    ctx.quadraticCurveTo(0,-3,h,-13);
-    ctx.lineTo(h,13);
-    ctx.quadraticCurveTo(0,3,-h,13);
+    ctx.moveTo(-h,-eh);
+    ctx.quadraticCurveTo(0,-w,h,-eh);
+    ctx.lineTo(h,eh);
+    ctx.quadraticCurveTo(0,w,-h,eh);
     ctx.closePath();
     ctx.fill();ctx.stroke();
   }else if(e.type==='splitter'){
@@ -1340,16 +1592,13 @@ function drawElem(k,e){
     ctx.textBaseline='middle';
     ctx.fillText('\u0192',0,1);
   }else if(e.type==='meter'){
-    // \u63a2\u6d4b\u5668\u9762\u677f\uff08\u6a2a\u8de8\u5149\u8def\uff09+ \u5b9e\u65f6\u8bfb\u6570
-    ctx.fillStyle='#161d29'; ctx.strokeStyle='#46546b'; ctx.lineWidth=2;
-    rr(ctx,-h,-7,2*h,14,3); ctx.fill(); ctx.stroke();
-    ctx.strokeStyle='#39d98a'; ctx.lineWidth=3;
-    ctx.beginPath();ctx.moveTo(-h,-7);ctx.lineTo(h,-7);ctx.stroke();
+    // \u529f\u7387\u63a2\u6d4b\u5668\uff1a\u6df1\u8272\u4eea\u8868\u9762\u677f + \u4f20\u611f\u7a97/\u5165\u5c04\u65b9\u5411 + \u4eea\u8868\u8bfb\u6570\u6846
+    ctx.fillStyle='#141d29'; ctx.strokeStyle='#46546b'; ctx.lineWidth=2;
+    rr(ctx,-h,-8,2*h,16,3); ctx.fill(); ctx.stroke();
+    detIncidence(h,-8,'#39d98a');
     const m=METER.get(e);
     ctx.rotate(-((e.props.rot||0)*D2R));
-    ctx.fillStyle=T.light?'#2b3442':'#dfe7f2';
-    ctx.font='11px ui-monospace,monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('P '+(m?m.pw.toFixed(2):'0'),0,-22);
+    detReadout('P '+(m?m.pw.toFixed(2):'0'),'#39d98a');
     if(selSet.has(k)){const rd=document.getElementById('meterVal'); if(rd)rd.innerHTML=meterText(e);}
   }else if(e.type==='polarizer'){
     ctx.fillStyle=css({r:140,g:165,b:205},T.light?.12:.16);
@@ -1374,15 +1623,71 @@ function drawElem(k,e){
     const s=h*0.78; rr(ctx,-s,-s,2*s,2*s,3); ctx.fill(); ctx.stroke();
     ctx.strokeStyle='#ffb454'; ctx.lineWidth=2.5;
     ctx.beginPath();ctx.moveTo(-h,0);ctx.lineTo(h,0);ctx.stroke();
+  }else if(e.type==='analyzer'){
+    // 检偏器:偏振片样式(检偏轴为绿) + 实时透射读数
+    ctx.fillStyle=css({r:140,g:165,b:205},T.light?.12:.16);
+    ctx.strokeStyle='#9fb6d6'; ctx.lineWidth=2.5;
+    rr(ctx,-h,-6,2*h,12,3); ctx.fill(); ctx.stroke();
+    const a=((e.props.axis||0)-(e.props.rot||0))*D2R, L=h*0.92;
+    ctx.strokeStyle='#39d98a'; ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-Math.cos(a)*L,-Math.sin(a)*L);ctx.lineTo(Math.cos(a)*L,Math.sin(a)*L);ctx.stroke();
+    const m=METER.get(e);
+    ctx.rotate(-((e.props.rot||0)*D2R));
+    detReadout('P '+(m?m.pw.toFixed(2):'0'),'#39d98a');
+    if(selSet.has(k)){const rd=document.getElementById('meterVal'); if(rd)rd.innerHTML=analyzerText(e);}
+  }else if(e.type==='pulsemeter'){
+    // 波形探测器（脉冲测量仪）：深色示波屏 + 波形迹线 + 传感窗/入射方向 + 仪表读数框
+    ctx.fillStyle='#0c1622'; ctx.strokeStyle='#46546b'; ctx.lineWidth=2;
+    rr(ctx,-h,-10,2*h,20,3); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='#5fd0ff'; ctx.lineWidth=1.8; ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(-h+6,4);ctx.lineTo(-h*0.4,4);ctx.lineTo(-h*0.15,-4);ctx.lineTo(0,9);ctx.lineTo(h*0.2,-2);ctx.lineTo(h*0.45,4);ctx.lineTo(h-6,4);
+    ctx.stroke();
+    detIncidence(h,-10,'#5fd0ff');
+    const m=PULSEM.get(e);
+    ctx.rotate(-((e.props.rot||0)*D2R));
+    let lbl='—';
+    if(m&&m.n){
+      if(m.pulse){const g=m.pI>0?m.gddW/m.pI:0,t=m.pI>0?m.todW/m.pI:0,f=m.pI>0?m.fodW/m.pI:0;lbl=pulseWidth(m.tau0,g,t,f).toFixed(0)+' fs';}
+      else lbl='CW';
+    }
+    detReadout(lbl,'#5fd0ff');
+    if(selSet.has(k)){
+      const rd=document.getElementById('meterVal'); if(rd)rd.innerHTML=pulseText(e);
+      const wv=document.getElementById('pulseWave'); if(wv)wv.innerHTML=pulseWaveSVG(e);   // 波形实时刷新
+    }
   }
   ctx.restore();
 }
 
+function detIncidence(h,faceY,col){
+  // 传感窗（亮条）+ 入射方向箭头：光从 -y 侧（传感面）射入，箭头指向探测器内部
+  ctx.lineCap='round';
+  ctx.strokeStyle=col; ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(-h+3,faceY);ctx.lineTo(h-3,faceY);ctx.stroke();
+  ctx.lineWidth=1.6; ctx.globalAlpha=0.92;
+  for(const dx of [-h*0.55,0,h*0.55]){
+    ctx.beginPath();
+    ctx.moveTo(dx,faceY-13);ctx.lineTo(dx,faceY-3);
+    ctx.moveTo(dx-3.2,faceY-7);ctx.lineTo(dx,faceY-3);ctx.lineTo(dx+3.2,faceY-7);
+    ctx.stroke();
+  }
+  ctx.globalAlpha=1;
+}
+function detReadout(txt,col){
+  // 需已 counter-rotate；仪表读数框（深色 LCD + 同色边框），像仪器读数
+  ctx.font='bold 11px ui-monospace,monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const w=ctx.measureText(txt).width, bw=Math.max(36,w+16), bh=18, by=-34;
+  ctx.fillStyle=T.light?'#0d1925':'#091017';
+  rr(ctx,-bw/2,by-bh/2,bw,bh,4); ctx.fill();
+  ctx.strokeStyle=col; ctx.lineWidth=1.4; ctx.stroke();
+  ctx.fillStyle=col; ctx.fillText(txt,0,by);
+}
 function fmtLen(px){
-  const mm=px/CELL*mmPerCell;
-  if(mm>=1000)return (mm/1000).toFixed(3)+' m';
-  if(mm>=10)return mm.toFixed(2)+' mm';
-  return mm.toFixed(3)+' mm';
+  const cm=px/CELL*cmPerCell;
+  if(cm>=100)return (cm/100).toFixed(3)+' m';
+  if(cm>=1)return cm.toFixed(2)+' cm';
+  return (cm*10).toFixed(2)+' mm';
 }
 function drawOneMeasure(a,b){       // 字号按 1/s 抵消缩放，保持恒定
   const s=view.s;
@@ -1415,8 +1720,19 @@ function updateMeasPanel(){
   const dl=document.getElementById('measDetList');
   if(dl){
     const rows=[];let i=0;
-    for(const [k,e] of grid){if(e.type==='meter'){i++;const m=METER.get(e);
-      rows.push('#'+i+'  '+(m&&m.n?(tr('mtP')+' '+m.pw.toFixed(2)+' · '+tr('mtI')+' '+(m.pw/(ELEMS.meter.half*2)).toFixed(2)):tr('mtNo')));}}
+    for(const [k,e] of grid){
+      if(e.type==='meter'){i++;const m=METER.get(e);
+        rows.push('#'+i+' '+tr('mtMeter')+'  '+(m&&m.n?(tr('mtP')+' '+m.pw.toFixed(2)+' · '+tr('mtI')+' '+(m.pw/(ELEMS.meter.half*2)).toFixed(2)):tr('mtNo')));}
+      else if(e.type==='analyzer'){i++;const m=METER.get(e);
+        rows.push('#'+i+' '+tr('mtAnalyzer')+'  '+(m&&m.n?(tr('mtPout')+' '+m.pw.toFixed(2)+' · '+(m.pwIn>0?(m.pw/m.pwIn*100).toFixed(0)+'%':'–')):tr('mtNo')));}
+      else if(e.type==='pulsemeter'){i++;const m=PULSEM.get(e);
+        let txt=tr('mtNo');
+        if(m&&m.n){
+          if(m.pulse){const g=m.pI>0?m.gddW/m.pI:0,t=m.pI>0?m.todW/m.pI:0,f=m.pI>0?m.fodW/m.pI:0;txt=tr('puPulse')+' '+pulseWidth(m.tau0,g,t,f).toFixed(0)+' fs';}
+          else txt=tr('puCW');
+        }
+        rows.push('#'+i+' '+tr('mtPulse')+'  '+txt);}
+    }
     dl.innerHTML=rows.length?rows.join('<br>'):'<span style="color:var(--dim)">'+tr('mDetNo')+'</span>';
   }
 }
@@ -1496,14 +1812,15 @@ function draw(){
   ctx.globalCompositeOperation=T.light?'source-over':'lighter';
   ctx.lineCap='round';
   const blurMul=RQ==='low'?0.5:(RQ==='high'?1.25:1);
+  // 性能：逐段 shadowBlur 极耗时；拖动/平移/缩放进行中或光线段过多时关闭辉光，仅保留彩色光束
+  const glow=SEGS.length<=900 && !(gesture&&(gesture.mode==='pan'||gesture.mode==='carry'||gesture.mode==='pinch'));
   for(let q=0;q<SEGS.length;q++){
     const sg=SEGS[q];
     // 复色白光在合成前按中性色绘制，避免浅色主题下叠加发紫
     const isWhite=sg.poly;
-    const c=isWhite?(T.light?{r:150,g:150,b:158}:{r:255,g:250,b:240}):wlRGB(sg.lam);
+    const c=isWhite?(T.light?{r:150,g:150,b:158}:{r:255,g:250,b:240}):wlRGB(sg.lamShow!==undefined?sg.lamShow:sg.lam);
     const I=Math.min(1,sg.I);
-    ctx.shadowColor=css(c,T.light?.55*I:I);
-    ctx.shadowBlur=Math.min(40,sg.w*4.5*s)*blurMul;
+    if(glow){ctx.shadowColor=css(c,T.light?.55*I:I);ctx.shadowBlur=Math.min(24,sg.w*4*s)*blurMul;}
     ctx.strokeStyle=css(c,(isWhite&&T.light?.7:.85)*I);
     ctx.lineWidth=sg.w;
     ctx.beginPath();ctx.moveTo(sg.a.x,sg.a.y);ctx.lineTo(sg.b.x,sg.b.y);ctx.stroke();
@@ -1521,7 +1838,7 @@ function draw(){
   ctx.shadowBlur=0;
   for(let q=0;q<HITS.length;q++){
     const ht=HITS[q];
-    const c=ht.poly?(T.light?{r:120,g:120,b:128}:{r:255,g:250,b:240}):wlRGB(ht.lam);
+    const c=ht.poly?(T.light?{r:120,g:120,b:128}:{r:255,g:250,b:240}):wlRGB(ht.lamShow!==undefined?ht.lamShow:ht.lam);
     const g=ctx.createRadialGradient(ht.p.x,ht.p.y,0,ht.p.x,ht.p.y,7);
     g.addColorStop(0,css(c,Math.min(1,ht.I)));
     g.addColorStop(1,css(c,0));
@@ -1538,8 +1855,9 @@ function draw(){
     ctx.shadowBlur=12;
     for(const k of selSet){
       if(!grid.has(k))continue;
-      const p=k.split(',');
-      rr(ctx,(+p[0])*CELL+2,(+p[1])*CELL+2,CELL-4,CELL-4,10);
+      const e=grid.get(k), p=k.split(',');
+      const ox=e.props.ox||0, oy=e.props.oy||0;     // 选框跟随微调位置
+      rr(ctx,(+p[0]+ox)*CELL+2,(+p[1]-oy)*CELL+2,CELL-4,CELL-4,10);
       ctx.stroke();
     }
     ctx.shadowBlur=0;
@@ -1573,6 +1891,7 @@ function draw(){
     ctx.restore();
   }
   updateMeasPanel();
+  updateSelFrame();
   statEl.textContent=tr('statEl')+' '+grid.size+' · '+tr('statRay')+' '+SEGS.length;
 }
 
@@ -1611,23 +1930,132 @@ document.getElementById('zin').addEventListener('click',()=>zoomBy(1.25));
 document.getElementById('zout').addEventListener('click',()=>zoomBy(0.8));
 document.getElementById('zfit').addEventListener('click',fitView);
 
+/* ---------- 默认指针 + 选中元件控件框（旋转 / 删除 / 拖动微调） ---------- */
+const nrot=a=>((a%360)+540)%360-180;
+function rotateSelection(deg){
+  if(!selSet.size)return;
+  pushUndo();
+  for(const k of selSet){ if(grid.has(k)){const e=grid.get(k); e.props.rot=nrot((e.props.rot||0)+deg);} }
+  needTrace=true; needDraw=true; renderProps();
+}
+function deleteSelection(){
+  if(!selSet.size)return;
+  pushUndo();
+  for(const k of [...selSet])grid.delete(k);
+  selSet.clear();
+  needTrace=true; needDraw=true; renderProps();
+}
+function resetCursorMode(){ clearArm(); setMeasuring(false); needDraw=true; }   // 回到默认指针：取消放置/标尺
+const zselBtn=document.getElementById('zsel');
+if(zselBtn)zselBtn.addEventListener('click',resetCursorMode);
+
+const selFrame=document.getElementById('selFrame');
+let fineDrag=null;   // {axis,start:[{e,ox,oy}],w0}
+function startFineDrag(handle,axis,ev){
+  if(!selSet.size)return;
+  ev.preventDefault(); ev.stopPropagation();
+  pushUndo();
+  const start=[...selSet].filter(k=>grid.has(k)).map(k=>{const e=grid.get(k);return {e,ox:e.props.ox||0,oy:e.props.oy||0};});
+  const p0=evtPos(ev);
+  fineDrag={axis,start,w0:s2w(p0.x,p0.y)};
+  handle.classList.add('drag');
+  try{handle.setPointerCapture(ev.pointerId);}catch(e){}
+}
+function moveFineDrag(ev){
+  if(!fineDrag)return;
+  const pp=evtPos(ev), w=s2w(pp.x,pp.y);
+  let lo=-Infinity,hi=Infinity;
+  if(fineDrag.axis==='x'){
+    for(const s of fineDrag.start){ lo=Math.max(lo,-0.5-s.ox); hi=Math.min(hi,0.5-s.ox); }   // 各元件保持在 ±0.5 格内
+    const d=clamp((w.x-fineDrag.w0.x)/CELL,lo,hi);
+    for(const s of fineDrag.start)s.e.props.ox=+(s.ox+d).toFixed(4);
+  }else{
+    for(const s of fineDrag.start){ lo=Math.max(lo,-0.5-s.oy); hi=Math.min(hi,0.5-s.oy); }
+    const d=clamp(-(w.y-fineDrag.w0.y)/CELL,lo,hi);                                            // 屏幕下移→oy 减小
+    for(const s of fineDrag.start)s.e.props.oy=+(s.oy+d).toFixed(4);
+  }
+  needTrace=true; needDraw=true;
+}
+function endFineDrag(){
+  if(!fineDrag)return;
+  document.querySelectorAll('.sf-handle.drag').forEach(h=>h.classList.remove('drag'));
+  fineDrag=null;
+  renderProps();
+}
+if(selFrame){
+  selFrame.querySelectorAll('.sf-corner').forEach(b=>{
+    b.addEventListener('pointerdown',ev=>ev.stopPropagation());
+    b.addEventListener('click',ev=>{ ev.stopPropagation();
+      const a=b.dataset.act;
+      if(a==='rotl')rotateSelection(-90); else if(a==='rotr')rotateSelection(90); else if(a==='del')deleteSelection();
+    });
+  });
+  selFrame.querySelectorAll('.sf-handle').forEach(h=>{
+    h.addEventListener('pointerdown',ev=>startFineDrag(h,h.dataset.axis,ev));
+  });
+  window.addEventListener('pointermove',moveFineDrag);
+  window.addEventListener('pointerup',endFineDrag);
+  window.addEventListener('pointercancel',endFineDrag);
+}
+function updateSelFrame(){
+  if(zselBtn)zselBtn.classList.toggle('on',!placing&&!measuring);   // 默认指针态高亮
+  if(!selFrame)return;
+  const in3d=document.getElementById('d3panel').classList.contains('on');
+  if(!selSet.size||hideElems||in3d){selFrame.classList.remove('show');return;}
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,n=0;
+  for(const k of selSet){ if(!grid.has(k))continue; const e=grid.get(k); const p=k.split(',');
+    const ax=(+p[0]+(e.props.ox||0))*CELL, ay=(+p[1]-(e.props.oy||0))*CELL;   // 含微调的渲染位置
+    if(ax<x0)x0=ax; if(ay<y0)y0=ay; if(ax+CELL>x1)x1=ax+CELL; if(ay+CELL>y1)y1=ay+CELL; n++; }
+  if(!n){selFrame.classList.remove('show');return;}
+  selFrame.style.left=((x0-view.x)*view.s)+'px';
+  selFrame.style.top=((y0-view.y)*view.s)+'px';
+  selFrame.style.width=((x1-x0)*view.s)+'px';
+  selFrame.style.height=((y1-y0)*view.s)+'px';
+  selFrame.classList.add('show');
+}
+
+/* ---------- 全屏 ---------- */
+const fsBtn=document.getElementById('fsbtn');
+const FS_OPEN='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 0-1 1h-4"/></svg>';
+const FS_CLOSE='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v3a1 1 0 0 1-1 1H5M15 4v3a1 1 0 0 0 1 1h3M9 20v-3a1 1 0 0 0-1-1H5M15 20v-3a1 1 0 0 1 1-1h3"/></svg>';
+function fsActive(){return document.fullscreenElement||document.webkitFullscreenElement;}
+function toggleFullscreen(){
+  if(fsActive()){(document.exitFullscreen||document.webkitExitFullscreen).call(document);}
+  else{const el=document.documentElement;(el.requestFullscreen||el.webkitRequestFullscreen).call(el).catch(()=>{});}
+}
+function syncFsBtn(){
+  if(!fsBtn)return;
+  const on=!!fsActive();
+  fsBtn.innerHTML=on?FS_CLOSE:FS_OPEN;
+  fsBtn.classList.toggle('on',on);
+  fsBtn.title=on?tr('fsExit'):tr('fsEnter');
+}
+if(fsBtn){
+  fsBtn.addEventListener('click',toggleFullscreen);
+  document.addEventListener('fullscreenchange',syncFsBtn);
+  document.addEventListener('webkitfullscreenchange',syncFsBtn);
+  syncFsBtn();
+}
+
 /* ---------- 测量板块 ---------- */
-const measBtn=document.getElementById('measBtn');
+function syncRulerBtn(){
+  const rb=document.getElementById('measRulerBtn');
+  if(rb)rb.classList.toggle('armed',measuring);
+}
 function setMeasuring(on){
+  if(on)clearArm();                 // 互斥:开启标尺时取消放置态
   measuring=on;
-  if(on){placing=null;hoverCell=null;renderProps();}
-  if(measBtn)measBtn.classList.toggle('on',on);
+  if(on)hoverCell=null;
+  syncRulerBtn();
   setCursor(on?'c-place':null);
+  renderProps();
   needDraw=true;
 }
-if(measBtn)measBtn.addEventListener('click',()=>setMeasuring(!measuring));
 const measScaleI=document.getElementById('measScale');
-if(measScaleI)measScaleI.addEventListener('input',e=>{const v2=parseFloat(e.target.value);if(v2>0){mmPerCell=v2;needDraw=true;}});
+if(measScaleI)measScaleI.addEventListener('input',e=>{const v2=parseFloat(e.target.value);if(v2>0){cmPerCell=v2;needTrace=true;needDraw=true;}});
 const measClearB=document.getElementById('measClear');
 if(measClearB)measClearB.addEventListener('click',()=>{measures=[];measureLive=null;needDraw=true;});
-const measAddB=document.getElementById('measAddDet');
-if(measAddB)measAddB.addEventListener('click',()=>{setMeasuring(false);placing='meter';hoverCell=null;renderProps();needDraw=true;});
-window.addEventListener('keydown',e=>{if(e.key==='Escape'&&measuring)setMeasuring(false);});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&measuring&&!document.fullscreenElement)setMeasuring(false);});
 
 cv.addEventListener('wheel',ev=>{
   ev.preventDefault();
@@ -1808,6 +2236,7 @@ function clearArm(){
   hint.textContent=(LANG==='en'?HINT0_EN:HINT0_ZH);
   document.body.classList.remove('placing');
   if(typeof setCursor==='function')setCursor(null);
+  if(typeof syncRulerBtn==='function')syncRulerBtn();   // 标尺态由 measuring 决定,重置 armed 后恢复
 }
 function tryPlace(type,i,j){
   const k=key(i,j);
@@ -1820,67 +2249,94 @@ function tryPlace(type,i,j){
   needTrace=true;
   renderProps();
 }
-function buildPalette(){
-  for(const type of Object.keys(ELEMS)){
-    if(type==='meter')continue;        // 探测器从「测量」板块放置
-    const def=ELEMS[type];
-    const b=document.createElement('button');
-    b.className='pal';
-    b.dataset.type=type;               // 供 setLang 按真实类型重标，避免跳过 meter 后索引错位
-    b.title=elName(type);
-    b.innerHTML='<span class="ic">'+def.icon+'</span><span class="lb">'+elName(type)+'</span>';
-    let drag=null;
-    b.addEventListener('pointerdown',ev=>{
-      ev.preventDefault();
-      b.setPointerCapture(ev.pointerId);
-      drag={sx:ev.clientX,sy:ev.clientY,on:false};
-    });
-    b.addEventListener('pointermove',ev=>{
-      if(!drag)return;
-      if(!drag.on&&Math.hypot(ev.clientX-drag.sx,ev.clientY-drag.sy)>7){
-        drag.on=true;
-        showGhost(type,ev.clientX,ev.clientY);
+// 生成一个可拖出 / 点选放置的元件按钮（元件库与测量板块共用）
+function makePalBtn(type){
+  const def=ELEMS[type];
+  const b=document.createElement('button');
+  b.className='pal';
+  b.dataset.type=type;               // 供 setLang 按真实类型重标
+  b.title=elName(type);
+  b.innerHTML='<span class="ic">'+def.icon+'</span><span class="lb">'+elName(type)+'</span>';
+  let drag=null;
+  b.addEventListener('pointerdown',ev=>{
+    ev.preventDefault();
+    b.setPointerCapture(ev.pointerId);
+    drag={sx:ev.clientX,sy:ev.clientY,on:false};
+  });
+  b.addEventListener('pointermove',ev=>{
+    if(!drag)return;
+    if(!drag.on&&Math.hypot(ev.clientX-drag.sx,ev.clientY-drag.sy)>7){
+      drag.on=true;
+      showGhost(type,ev.clientX,ev.clientY);
+    }
+    if(drag.on){
+      moveGhost(ev.clientX,ev.clientY);
+      const r=cv.getBoundingClientRect();
+      if(ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom){
+        hoverCell=cellAt(ev.clientX-r.left,ev.clientY-r.top);
+      }else hoverCell=null;
+      needDraw=true;
+    }
+  });
+  b.addEventListener('pointerup',ev=>{
+    if(!drag)return;
+    if(drag.on){
+      hideGhost();
+      const r=cv.getBoundingClientRect();
+      if(ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom){
+        const cel=cellAt(ev.clientX-r.left,ev.clientY-r.top);
+        tryPlace(type,cel[0],cel[1]);
       }
-      if(drag.on){
-        moveGhost(ev.clientX,ev.clientY);
-        const r=cv.getBoundingClientRect();
-        if(ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom){
-          hoverCell=cellAt(ev.clientX-r.left,ev.clientY-r.top);
-        }else hoverCell=null;
-        needDraw=true;
-      }
-    });
-    b.addEventListener('pointerup',ev=>{
-      if(!drag)return;
-      if(drag.on){
-        hideGhost();
-        const r=cv.getBoundingClientRect();
-        if(ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom){
-          const cel=cellAt(ev.clientX-r.left,ev.clientY-r.top);
-          tryPlace(type,cel[0],cel[1]);
-        }
-        hoverCell=null;needDraw=true;
+      hoverCell=null;needDraw=true;
+    }else{
+      if(placing===type){
+        clearArm();renderProps();
       }else{
-        if(placing===type){
-          clearArm();renderProps();
-        }else{
-          clearArm();
-          placing=type;
-          b.classList.add('armed');
-          hint.textContent=tr('placeHint')+' '+elName(type)+tr('placeEsc');
-          document.body.classList.add('placing');
-          if(matchMedia('(max-width:760px)').matches){const d=document.querySelector('aside');if(d)d.classList.remove('open');}
-          renderProps();
-        }
+        if(measuring)setMeasuring(false);   // 互斥:放置元件时退出标尺
+        clearArm();
+        placing=type;
+        b.classList.add('armed');
+        hint.textContent=tr('placeHint')+' '+elName(type)+tr('placeEsc');
+        document.body.classList.add('placing');
+        if(matchMedia('(max-width:760px)').matches){const d=document.querySelector('aside');if(d)d.classList.remove('open');}
+        renderProps();
       }
-      drag=null;
-    });
-    b.addEventListener('pointercancel',()=>{
-      if(drag&&drag.on){hideGhost();hoverCell=null;needDraw=true}
-      drag=null;
-    });
-    palEl.appendChild(b);
+    }
+    drag=null;
+  });
+  b.addEventListener('pointercancel',()=>{
+    if(drag&&drag.on){hideGhost();hoverCell=null;needDraw=true}
+    drag=null;
+  });
+  return b;
+}
+const SRC_TYPES=['source','fsource','csource'];   // 光源类：放「光源」板块
+function buildPalette(){
+  const sp=document.getElementById('srcPalette');
+  for(const type of Object.keys(ELEMS)){
+    if(type==='meter'||type==='analyzer'||type==='pulsemeter')continue;   // 测量类元件从「测量」板块放置
+    if(SRC_TYPES.includes(type)){if(sp)sp.appendChild(makePalBtn(type));continue;}   // 光源类元件从「光源」板块放置
+    palEl.appendChild(makePalBtn(type));
   }
+}
+// 标尺图标（与元件库图标同尺寸 36×36）
+const RULER_ICON='<svg viewBox="0 0 36 36"><rect x="4" y="13" width="28" height="10" rx="1.5" fill="rgba(255,180,84,.12)" stroke="#ffb454" stroke-width="2"/><path d="M9 13v4M13.5 13v6M18 13v4M22.5 13v6M27 13v4" stroke="#ffb454" stroke-width="1.6" stroke-linecap="round"/></svg>';
+function buildMeasPalette(){
+  const mp=document.getElementById('measPalette');
+  if(!mp)return;
+  mp.innerHTML='';
+  // 直尺：切换长度测量模式（与原功能一致，不需拖出元件）
+  const ruler=document.createElement('button');
+  ruler.className='pal'; ruler.id='measRulerBtn'; ruler.dataset.tool='ruler';
+  ruler.title=tr('mRuler');
+  ruler.innerHTML='<span class="ic">'+RULER_ICON+'</span><span class="lb">'+tr('mRuler')+'</span>';
+  ruler.addEventListener('click',()=>setMeasuring(!measuring));
+  mp.appendChild(ruler);
+  // 功率计 + 检偏器 + 脉冲测量仪：与元件库一致，可拖出或点选放置
+  mp.appendChild(makePalBtn('meter'));
+  mp.appendChild(makePalBtn('analyzer'));
+  mp.appendChild(makePalBtn('pulsemeter'));
+  syncRulerBtn();
 }
 
 /* ---------- 键盘 ---------- */
@@ -1949,6 +2405,7 @@ window.addEventListener('keydown',ev=>{
     doUndo();ev.preventDefault();return;
   }
   if(ev.key==='Escape'){
+    if(document.fullscreenElement)return;   // 全屏时 Esc 先退出全屏,不取消放置/选择
     if(placing){clearArm();renderProps();needDraw=true}
     else if(selSet.size){selSet.clear();renderProps();needDraw=true}
   }else if((ev.key==='r'||ev.key==='R')&&selSet.size){
@@ -2032,7 +2489,7 @@ function renderProps(){
   propsEl.appendChild(head);
 
   const range=(label,pk,min,max,step)=>{
-    const colored=(pk==='lam'||pk==='lamSet');
+    const colored=(pk==='lam'||pk==='lamSet'||pk==='lamShow');
     const bip=(min<0&&max>0);                    // 双向滑块：0 居中，从中心向两侧填琥珀
     const row=document.createElement('div');
     row.className='prow';
@@ -2096,10 +2553,54 @@ function renderProps(){
     row.append(sp,s2);
     propsEl.appendChild(row);
   };
+  // 飞秒激光器：中心波长 λ、脉宽 τ0、谱宽 Δλ 三者按变换极限联动
+  //   变换极限(高斯 TBP=0.441)：Δλ = 0.441·λ²/(c·τ0)，c ≈ 299.79 nm/fs（与脉冲测量仪读数一致）
+  //   τ0(P.pulse) 为存储量；调脉宽↔谱宽互为倒数、调中心波长时谱宽随 λ² 变化，实时互算
+  const fsPulseGroup=()=>{
+    const TBP=0.441,CNM=299.79,TAUMIN=5,TAUMAX=500,LAMMIN=200,LAMMAX=1600;
+    const bwOf =(tau,lam)=>TBP*lam*lam/(CNM*Math.max(1e-6,tau));   // Δλ (nm)
+    const tauOf=(bw ,lam)=>TBP*lam*lam/(CNM*Math.max(1e-6,bw ));   // τ0 (fs)
+    const mkRow=label=>{
+      const row=document.createElement('div');row.className='prow';
+      const sp=document.createElement('span');sp.textContent=label;
+      const inp=document.createElement('input');inp.type='range';
+      const num=document.createElement('input');num.type='number';
+      const rst=document.createElement('button');rst.className='rst';rst.textContent='↺';rst.title='重置为默认值';
+      row.append(sp,inp,num,rst);propsEl.appendChild(row);
+      return {inp,num,rst};
+    };
+    const rLam=mkRow(tr('l_lam')),rTau=mkRow(tr('l_pulse')),rBw=mkRow(tr('l_bw'));
+    rLam.inp.min=rLam.num.min=LAMMIN;rLam.inp.max=rLam.num.max=LAMMAX;rLam.inp.step=rLam.num.step=1;
+    rTau.inp.min=rTau.num.min=TAUMIN;rTau.inp.max=rTau.num.max=TAUMAX;rTau.inp.step=rTau.num.step=1;
+    rBw.inp.step=rBw.num.step=0.1;
+    const sync=()=>{
+      const lam=P.lam,tau=P.pulse;
+      rLam.inp.value=rLam.num.value=lam;
+      rTau.inp.value=tau; rTau.num.value=Math.round(tau*10)/10;   // τ0 显示到 0.1 fs，避免联动时出现长小数
+      rBw.inp.min=rBw.num.min=bwOf(TAUMAX,lam).toFixed(2);
+      rBw.inp.max=rBw.num.max=bwOf(TAUMIN,lam).toFixed(2);
+      rBw.inp.value=rBw.num.value=bwOf(tau,lam).toFixed(2);
+      rLam.num.style.color=css(wlRGB(lam));
+      rBw.num.style.color=css(wlRGB(lam));
+    };
+    sync();
+    const setLam=v=>{P.lam=clamp(parseFloat(v)||LAMMIN,LAMMIN,LAMMAX);sync();needTrace=true;};
+    const setTau=v=>{P.pulse=clamp(parseFloat(v)||30,TAUMIN,TAUMAX);sync();needTrace=true;};
+    const setBw =v=>{v=parseFloat(v);if(v>0){P.pulse=clamp(Math.round(tauOf(v,P.lam)*10)/10,TAUMIN,TAUMAX);needTrace=true;}sync();};
+    rLam.inp.addEventListener('input',()=>setLam(rLam.inp.value));
+    rLam.num.addEventListener('change',()=>setLam(rLam.num.value));
+    rTau.inp.addEventListener('input',()=>setTau(rTau.inp.value));
+    rTau.num.addEventListener('change',()=>setTau(rTau.num.value));
+    rBw.inp.addEventListener('input',()=>setBw(rBw.inp.value));
+    rBw.num.addEventListener('change',()=>setBw(rBw.num.value));
+    rLam.rst.addEventListener('click',()=>setLam(800));
+    rTau.rst.addEventListener('click',()=>setTau(30));
+    rBw.rst.addEventListener('click',()=>setTau(30));
+  };
 
   const normRot=a=>((a%360)+540)%360-180;     // 归一到 -180~180，0° 在滑块正中
   P.rot=normRot(P.rot||0);
-  if(e.type==='source'){
+  if(e.type==='source'||e.type==='fsource'||e.type==='csource'){
     range(tr('l_rotOut'),'rot',-180,180,1);
   }else{
     range(tr('l_rot'),'rot',-180,180,1);
@@ -2146,12 +2647,33 @@ function renderProps(){
     if(P.polMode===undefined)P.polMode='unpol';
     select(tr('l_polMode'),'polMode',[['unpol',tr('o_unpol')],['linear',tr('o_linear')]]);
     if(P.polMode==='linear')range(tr('l_polAng'),'polAng',-90,90,1);
+  }else if(e.type==='fsource'){
+    fsPulseGroup();                                // 中心波长 / 脉宽 / 谱宽（变换极限联动）
+    range(tr('l_gdd0'),'gdd0',-20000,20000,50);    // 初始啁啾 GDD fs²
+    range(tr('l_width'),'width',1,200,1);
+    range(tr('l_bri'),'bri',0.1,2,0.05);
+    if(P.polMode===undefined)P.polMode='linear';
+    select(tr('l_polMode'),'polMode',[['unpol',tr('o_unpol')],['linear',tr('o_linear')]]);
+    if(P.polMode==='linear')range(tr('l_polAng'),'polAng',-90,90,1);
+  }else if(e.type==='csource'){
+    range(tr('l_lamProp'),'lam',200,3000,1);       // 传播/计算波长 A（可达红外）
+    range(tr('l_lamShow'),'lamShow',390,720,1);    // 显示波长 B（仅决定颜色，限可见范围）
+    range(tr('l_width'),'width',1,200,1);
+    range(tr('l_bri'),'bri',0.1,2,0.05);
+    if(P.polMode===undefined)P.polMode='unpol';
+    select(tr('l_polMode'),'polMode',[['unpol',tr('o_unpol')],['linear',tr('o_linear')]]);
+    if(P.polMode==='linear')range(tr('l_polAng'),'polAng',-90,90,1);
+    const note=document.createElement('div');
+    note.className='empty'; note.style.opacity='.85'; note.textContent=tr('l_csNote');
+    propsEl.appendChild(note);
   }else if(e.type==='cmirror'){
     range(tr('l_f'),'f',0.5,6,0.1);
   }else if(e.type==='lensCX'){
     range(tr('l_f'),'f',0.5,6,0.1);
+    range(tr('l_thLens'),'th',0.06,0.6,0.01);
   }else if(e.type==='lensCV'){
     range(tr('l_f'),'f',-6,-0.5,0.1);
+    range(tr('l_thLens'),'th',0.06,0.6,0.01);
   }else if(e.type==='splitter'){
     range(tr('l_ratio'),'ratio',0,100,1);
   }else if(e.type==='grating'){
@@ -2192,6 +2714,25 @@ function renderProps(){
     rd.className='empty'; rd.id='meterVal'; rd.style.lineHeight='1.9';
     rd.innerHTML=meterText(e);
     propsEl.appendChild(rd);
+  }else if(e.type==='analyzer'){
+    range(tr('l_axis'),'axis',-90,90,1);
+    const rd=document.createElement('div');
+    rd.className='empty'; rd.id='meterVal'; rd.style.lineHeight='1.9';
+    rd.innerHTML=analyzerText(e);
+    propsEl.appendChild(rd);
+  }else if(e.type==='pulsemeter'){
+    const rd=document.createElement('div');
+    rd.className='empty'; rd.id='meterVal'; rd.style.lineHeight='1.9';
+    rd.innerHTML=pulseText(e);
+    propsEl.appendChild(rd);
+    const wv=document.createElement('div');
+    wv.id='pulseWave';
+    wv.innerHTML=pulseWaveSVG(e);
+    propsEl.appendChild(wv);
+    const note=document.createElement('div');
+    note.className='empty'; note.style.opacity='.8';
+    note.textContent=tr('puNote');
+    propsEl.appendChild(note);
   }else if(e.type==='custom'){
     select(tr('l_outMode'),'outMode',[['pass',tr('o_pass')],['mirror',tr('o_mirror')],['rel',tr('o_rel')],['abs',tr('o_abs')]]);
     if(P.outMode==='rel')range(tr('l_dTheta'),'dTheta',-180,180,1);
@@ -2202,6 +2743,14 @@ function renderProps(){
     range(tr('l_trans'),'trans',0,100,1);
     check(tr('l_splitOn'),'splitOn');
     if(P.splitOn)range(tr('l_splitRatio'),'splitRatio',0,100,1);
+    // 自定义色散（对脉冲光生效）
+    check(tr('l_dispOn'),'dispOn');
+    if(P.dispOn){
+      range(tr('l_cGD'),'cGD',-2000,2000,10);
+      range(tr('l_cGDD'),'cGDD',-20000,20000,50);
+      range(tr('l_cTOD'),'cTOD',-200000,200000,500);
+      range(tr('l_cFOD'),'cFOD',-2000000,2000000,5000);
+    }
   }
 }
 
@@ -2375,6 +2924,7 @@ document.querySelectorAll('#rqseg button').forEach(b=>{
     RQ=b.dataset.rq;
     document.querySelectorAll('#rqseg button').forEach(x=>x.classList.toggle('on',x===b));
     needTrace=true;
+    if(window.OB3D&&window.OB3D.active())window.OB3D.setQuality(RQ);  // 同步 3D 渲染精度
   });
 });
 
@@ -2416,6 +2966,7 @@ expScaleN.addEventListener('change',()=>{
 document.getElementById('expcancel').addEventListener('click',()=>{expMask.hidden=true});
 expMask.addEventListener('pointerdown',ev=>{if(ev.target===expMask)expMask.hidden=true});
 document.getElementById('expgo').addEventListener('click',()=>{
+  if(window.OB3D&&window.OB3D.active()){window.OB3D.exportPNG(parseFloat(expScale.value)||2);expMask.hidden=true;return;}
   const b=baseSize();
   const sc=parseFloat(expScale.value);
   const off=document.createElement('canvas');
@@ -2550,7 +3101,7 @@ function toast(msg){
 // ---------- 新手引导 ----------
 (function(){
   const TOUR=[
-    {sel:'#palette',zh:['元件库','点击选中一个元件，再点画布即可放置；也可以直接把它拖到画布上。'],en:['Components','Tap an element, then tap the canvas to place it — or drag it onto the canvas.']},
+    {sel:'.tabwrap',zh:['光源 · 元件 · 测量','三个选项卡分别放光源、光学元件与测量工具。点击选中后再点画布即可放置，也可直接拖到画布上。'],en:['Sources · Optics · Measure','Three tabs hold light sources, optics and measurement tools. Tap one, then tap the canvas to place — or drag it in.']},
     {sel:'#stage',zh:['工作区','滚轮缩放、拖动空白处平移；点击已放置的元件即可选中并编辑。'],en:['Workspace','Scroll to zoom, drag empty space to pan; click a placed element to select & edit.']},
     {sel:'#props',zh:['属性面板','选中元件后，在这里调节角度、焦距、波长等参数，光路会实时更新。'],en:['Properties','After selecting, tune angle, focal length, wavelength… here. Rays update live.']},
     {sel:'#rqseg',zh:['渲染精细度','流畅省性能、精细最好看，可随时切换。'],en:['Render quality','Smooth saves power, Fine looks best — switch anytime.']},
@@ -2623,12 +3174,18 @@ function setLang(lang){
   // 隐藏元件按钮悬停
   if(typeof tgHide!=='undefined'&&tgHide)tgHide.title=hideElems?tr('showTitle'):tr('hideTitle');
   // 重建调色板标签、重绘属性面板、刷新提示与导出读数
-  document.querySelectorAll('#palette .pal').forEach((b,idx)=>{
-    const type=b.dataset.type||Object.keys(ELEMS)[idx];
+  document.querySelectorAll('#palette .pal,#srcPalette .pal').forEach(b=>{
+    const type=b.dataset.type;
     if(!type)return;
     b.title=elName(type);
     const lbl=b.querySelector('.lb');
     if(lbl)lbl.textContent=elName(type);
+  });
+  // 测量板块图标标签随语言更新
+  document.querySelectorAll('#measPalette .pal').forEach(b=>{
+    const lbl=b.querySelector('.lb');
+    if(b.dataset.type){b.title=elName(b.dataset.type);if(lbl)lbl.textContent=elName(b.dataset.type);}
+    else if(b.dataset.tool==='ruler'){b.title=tr('mRuler');if(lbl)lbl.textContent=tr('mRuler');}
   });
   renderProps();
   if(!placing)hint.textContent=(lang==='en'?HINT0_EN:HINT0_ZH);
@@ -2638,11 +3195,24 @@ function setLang(lang){
 document.getElementById('langbtn').addEventListener('click',()=>setLang(LANG==='en'?'zh':'en'));
 
 buildPalette();
+buildMeasPalette();
+// 元件库 / 测量 选项卡切换
+document.querySelectorAll('.tabbar .tab').forEach(t=>t.addEventListener('click',()=>{
+  const id=t.dataset.tab;
+  document.querySelectorAll('.tabbar .tab').forEach(x=>x.classList.toggle('on',x===t));
+  document.querySelectorAll('.tabbody .tabpane').forEach(p=>p.classList.toggle('on',p.dataset.pane===id));
+}));
 hint.textContent=(LANG==='en'?HINT0_EN:HINT0_ZH);
 setTheme('dark');
 setLang('zh');
 resize();
-scene('prismsplit');
+// 初始默认光路（来自 OpticalBoard-config.json）
+const DEFAULT_CONFIG={app:'OpticalBoard',ver:'1.0',cell:96,items:[
+  {i:-7,j:-2,type:'source',props:{rot:0,lam:490,width:6,bri:1,poly:false,polMode:'unpol',polAng:0}},
+  {i:-4,j:-2,type:'mirror',props:{rot:-135}},
+  {i:-4,j:0,type:'mirror',props:{rot:45}}
+]};
+try{loadConfig(DEFAULT_CONFIG);}catch(e){scene('prismsplit');}
 renderProps();
 requestAnimationFrame(frame);
 // 移动端默认低画质：光线采样降档，更流畅（用户仍可在顶栏切回标准/精细）
@@ -2656,8 +3226,9 @@ if(matchMedia('(max-width:760px)').matches){
 window.OB={
   trace, wlRGB, grid, ELEMS, CELL,
   getSEGS:()=>SEGS, getHITS:()=>HITS,
-  getLight:()=>!!T.light,
-  tr:(k)=>tr(k)
+  getLight:()=>!!T.light, getRQ:()=>RQ,
+  tr:(k)=>tr(k),
+  getMETER:()=>METER, getPULSEM:()=>PULSEM, pulseWidth   // 测量/超快 内部状态(供调试与扩展)
 };
 
 </script>
@@ -2680,7 +3251,7 @@ const D2R=Math.PI/180, CELL=OB.CELL;
 const BEAMY=0.5, HEL=0.7;          // 光束高度 / 元件统一高度
 
 // three.js 句柄（首次进入 3D 时懒加载）
-let THREE,OrbitControls,EffectComposer,RenderPass,UnrealBloomPass,OutputPass,RoomEnvironment,RectAreaLightUniformsLib,GTAOPass;
+let THREE,OrbitControls,EffectComposer,RenderPass,UnrealBloomPass,OutputPass,RoomEnvironment,RectAreaLightUniformsLib,GTAOPass,Reflector;
 let loaded=false,loadingPromise=null;
 async function loadThree(){
   if(loaded)return true;
@@ -2695,6 +3266,7 @@ async function loadThree(){
     RoomEnvironment=(await import('three/addons/environments/RoomEnvironment.js')).RoomEnvironment;
     RectAreaLightUniformsLib=(await import('three/addons/lights/RectAreaLightUniformsLib.js')).RectAreaLightUniformsLib;
     GTAOPass=(await import('three/addons/postprocessing/GTAOPass.js')).GTAOPass;
+    Reflector=(await import('three/addons/objects/Reflector.js')).Reflector;   // 模糊反射地面（倒影）
     loaded=true;return true;
   })();
   return loadingPromise;
@@ -2702,7 +3274,7 @@ async function loadThree(){
 
 let renderer,scene3,cam,controls,composer,renderPass,bloomPass,gtaoPass;
 let uniformLight,hemiLight,keyLight,fillLight,areaLight,pointLight,envTex;
-let sceneRoot=null,boardMesh=null;
+let sceneRoot=null,boardMesh=null,reflectorMesh=null;
 let centerCi=0,centerCj=0,fitRadius=6;
 let d3on=false,rafId=0,projMode='persp',isNight=true,lightType='area',qLevel='med';
 const three=$('three');
@@ -2762,7 +3334,7 @@ function dishGeo(R,depth,base){
 function makeOptic(k,e){
   const p=k.split(',');
   const c={x:(+p[0]+.5+(e.props.ox||0))*CELL,y:(+p[1]+.5-(e.props.oy||0))*CELL};
-  let ang=(e.props.rot||0)*D2R; if(e.type==='source')ang+=Math.PI/2;
+  let ang=(e.props.rot||0)*D2R; if(e.type==='source'||e.type==='fsource'||e.type==='csource')ang+=Math.PI/2;   // 光源出光沿 -Z，与 2D 出射方向一致（含飞秒/自定义激光器）
   const t={x:Math.cos(ang),y:Math.sin(ang)}, nrm={x:-t.y,y:t.x};
   const hf=(OB.ELEMS[e.type]?OB.ELEMS[e.type].half:0.45), type=e.type;
   const R1=HEL/2;   // Ø1" 标准通光半径
@@ -2790,14 +3362,22 @@ function makeOptic(k,e){
   // 凸/凹透镜：真实双凸/双凹玻璃 + 金属夹持环
   if(type==='lensCX'||type==='lensCV'){
     const g=new THREE.Group();
-    const lens=new THREE.Mesh(type==='lensCX'?lensGeo(R1,0.22,0.05,true):lensGeo(R1,0.05,0.24,false),MAT.glass);
+    const th=e.props.th||(type==='lensCX'?0.17:0.27);   // 厚度随属性
+    const lens=new THREE.Mesh(type==='lensCX'?lensGeo(R1,Math.max(0.05,th),0.04,true):lensGeo(R1,0.04,Math.max(0.05,th),false),MAT.glass);
     g.add(lens);
     g.add(new THREE.Mesh(new THREE.TorusGeometry(R1+0.01,0.032,12,44),MAT.metalMount));
     return placeByBasis(g,c,t,nrm,BEAMY);
   }
   if(type==='splitter'){
-    const m=new THREE.Mesh(new THREE.BoxGeometry(hf*2,HEL,0.05),MAT.splitter);
-    return placeByBasis(m,c,t,nrm,BEAMY);
+    // 分束器：透明玻璃立方 + 45° 半反膜界面（真实玻璃质感）
+    const g=new THREE.Group(), s=HEL*0.82;
+    const glass=new THREE.MeshPhysicalMaterial({color:0xeaf4ff,metalness:0,roughness:0.05,transmission:0.95,
+      ior:1.52,thickness:0.5,clearcoat:0.7,clearcoatRoughness:0.12,
+      attenuationColor:new THREE.Color(0xbfe0ff),attenuationDistance:4.0,transparent:true,side:THREE.DoubleSide,envMapIntensity:1.0});
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(s,s,s),glass));
+    const coat=new THREE.MeshPhysicalMaterial({color:0xdfeaf6,metalness:0.45,roughness:0.12,transparent:true,opacity:0.32,side:THREE.DoubleSide,envMapIntensity:1.1});
+    g.add(new THREE.Mesh(new THREE.PlaneGeometry(s*0.995,s*0.995),coat));   // 局部 X-Y 面 = 半反膜
+    return placeByBasis(g,c,t,nrm,BEAMY);
   }
   if(type==='dichroic'){
     // 二向色镜 = 镀介质膜的玻璃基片：透明玻璃 + 清漆镀膜光泽 + 体吸收微染色
@@ -2862,14 +3442,15 @@ function makeOptic(k,e){
     const m=new THREE.Mesh(geo,MAT.glass);
     return placeByBasis(m,c,t,nrm,BEAMY);
   }
-  // 激光源：阳极氧化激光头 + 散热齿 + 收口 + 发光出光孔（出射沿 -Z）
-  if(type==='source'){
+  // 激光源 / 飞秒激光器 / 自定义激光器：阳极氧化激光头 + 散热齿 + 收口 + 发光出光孔（出射沿 -Z）
+  if(type==='source'||type==='fsource'||type==='csource'){
     const g=new THREE.Group();
+    const isFs=(type==='fsource');
     // 半径随光束宽度变化，与 2D 一致（2D 出光口半高=max(7,width)，外壳=ap+12）
     const w=Math.max(7,e.props.width||6);
     const apR=w/CELL, bodyR=apR+12/CELL, finR=bodyR+0.035;
-    const bodyMat=new THREE.MeshStandardMaterial({color:0x232a36,metalness:0.72,roughness:0.33});
-    const finMat=new THREE.MeshStandardMaterial({color:0x39414e,metalness:0.6,roughness:0.45});
+    const bodyMat=new THREE.MeshStandardMaterial({color:isFs?0x3a2418:0x232a36,metalness:0.72,roughness:0.33});
+    const finMat=new THREE.MeshStandardMaterial({color:isFs?0x5a3a22:0x39414e,metalness:0.6,roughness:0.45});
     const body=new THREE.Mesh(new THREE.CylinderGeometry(bodyR,bodyR,0.5,28),bodyMat);
     body.rotation.x=Math.PI/2; body.position.z=0.07; g.add(body);
     const nose=new THREE.Mesh(new THREE.CylinderGeometry(apR*1.05,bodyR,0.16,28),bodyMat);
@@ -2878,7 +3459,8 @@ function makeOptic(k,e){
       const fin=new THREE.Mesh(new THREE.CylinderGeometry(finR,finR,0.014,24),finMat);
       fin.rotation.x=Math.PI/2; fin.position.z=0.0+i*0.05; g.add(fin);
     }
-    const col=e.props.poly?new THREE.Color(1,0.98,0.94):wl(e.props.lam);
+    const showLam=(type==='csource')?(e.props.lamShow||e.props.lam):e.props.lam;   // 自定义激光器出光孔按显示波长发光
+    const col=e.props.poly?new THREE.Color(1,0.98,0.94):wl(showLam);
     const ap=new THREE.Mesh(new THREE.CylinderGeometry(apR*0.92,apR*0.92,0.012,24),
       new THREE.MeshBasicMaterial({color:glowColor(col,1.3)}));
     ap.rotation.x=Math.PI/2; ap.position.z=-0.355; g.add(ap);
@@ -2893,6 +3475,21 @@ function makeOptic(k,e){
     const bar=new THREE.Mesh(new THREE.BoxGeometry(R1*1.85,0.04,0.06),
       new THREE.MeshStandardMaterial({color:0xffb454,emissive:0x5a3a10,emissiveIntensity:0.5}));
     bar.position.z=0.035; bar.rotation.z=(e.props.axis||0)*Math.PI/180; g.add(bar);   // 透光轴
+    return placeByBasis(g,c,t,nrm,BEAMY);
+  }
+  if(type==='analyzer'){
+    // 检偏器：偏振片镜片 + 绿色检偏轴 + 顶部读数小牌
+    const g=new THREE.Group(), R1=HEL/2;
+    const disc=new THREE.Mesh(new THREE.CylinderGeometry(R1,R1,0.05,40),
+      new THREE.MeshPhysicalMaterial({color:0x9fb6d6,metalness:0.1,roughness:0.2,transmission:0.5,ior:1.5,thickness:0.06,transparent:true,side:THREE.DoubleSide,envMapIntensity:0.7}));
+    disc.rotation.x=Math.PI/2; g.add(disc);
+    g.add(new THREE.Mesh(new THREE.TorusGeometry(R1,0.034,12,44),MAT.metalMount));
+    const bar=new THREE.Mesh(new THREE.BoxGeometry(R1*1.85,0.04,0.07),
+      new THREE.MeshStandardMaterial({color:0x39d98a,emissive:0x155538,emissiveIntensity:0.6}));
+    bar.position.z=0.04; bar.rotation.z=(e.props.axis||0)*Math.PI/180; g.add(bar);   // 检偏轴
+    const tag=new THREE.Mesh(new THREE.BoxGeometry(R1*0.95,0.16,0.05),
+      new THREE.MeshStandardMaterial({color:0x0c1a14,emissive:0x1f7a4a,emissiveIntensity:0.7,roughness:0.5}));
+    tag.position.set(0,R1+0.12,0); g.add(tag);   // 读数小牌
     return placeByBasis(g,c,t,nrm,BEAMY);
   }
   if(type==='halfwave'){
@@ -2922,6 +3519,17 @@ function makeOptic(k,e){
       new THREE.MeshStandardMaterial({color:0x0c1a14,emissive:0x1f7a4a,emissiveIntensity:0.55,roughness:0.5}));
     face.position.z=0.1; g.add(face);
     const face2=face.clone(); face2.position.z=-0.1; g.add(face2);
+    return placeByBasis(g,c,t,nrm,BEAMY);
+  }
+  if(type==='pulsemeter'){
+    // 脉冲测量仪：深色仪表 + 青色发光屏（示意波形检测）
+    const g=new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(hf*1.7,HEL,0.22),
+      new THREE.MeshStandardMaterial({color:0x1a2230,metalness:0.6,roughness:0.4})));
+    const face=new THREE.Mesh(new THREE.BoxGeometry(hf*1.5,HEL-0.14,0.05),
+      new THREE.MeshStandardMaterial({color:0x07141f,emissive:0x1f6f9a,emissiveIntensity:0.6,roughness:0.5}));
+    face.position.z=0.11; g.add(face);
+    const face2=face.clone(); face2.position.z=-0.11; g.add(face2);
     return placeByBasis(g,c,t,nrm,BEAMY);
   }
   // 自定义：深色模块盒 + 强调色条
@@ -2963,14 +3571,17 @@ function gridBounds(){
   return{minI,minJ,maxI,maxJ};
 }
 
+// 倒影材质：克隆原材质 → 透明/双面/不写深度；元件按世界高度向下渐隐，光束用固定低透明度
 /* ---------- 构建 3D 场景 ---------- */
 function build3D(){
   OB.trace();
   const SEGS=OB.getSEGS(), HITS=OB.getHITS();
   const b=gridBounds();
   centerCi=(b.minI+b.maxI+1)/2; centerCj=(b.minJ+b.maxJ+1)/2;
-  if(sceneRoot){scene3.remove(sceneRoot);sceneRoot.traverse(o=>{if(o.geometry)o.geometry.dispose();});}
+  if(sceneRoot){scene3.remove(sceneRoot);sceneRoot.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.isReflector&&o.dispose)o.dispose();});}
+  reflectorMesh=null;
   sceneRoot=new THREE.Group(); scene3.add(sceneRoot);
+  const beamObjs=[];   // 光束 / 光斑：渲染倒影时临时隐藏（光线没有倒影）
 
   const padW=(b.maxI-b.minI+1)+4, padD=(b.maxJ-b.minJ+1)+4;
   // 元件先加：投射 + 接收阴影
@@ -2982,8 +3593,8 @@ function build3D(){
   // 光学面包板：金属拉丝 + 真实沉孔(map+bump，每 0.5 格一孔)，接收阴影
   const tex=makeHoleTexture(); tex.repeat.set(Math.round(padW*2),Math.round(padD*2));
   boardMesh=new THREE.Mesh(new THREE.BoxGeometry(padW,0.3,padD),
-    new THREE.MeshStandardMaterial({map:tex,bumpMap:tex,bumpScale:0.035,color:0xe8edf3,
-      metalness:0.55,roughness:0.5,envMapIntensity:0.6}));
+    new THREE.MeshStandardMaterial({map:tex,bumpMap:tex,bumpScale:0.04,color:0xe8edf3,
+      metalness:0.6,roughness:0.48,envMapIntensity:0.78}));
   boardMesh.position.set(0,-0.15,0);
   boardMesh.receiveShadow=true;
   boardMesh.visible=$('d3board').checked;
@@ -3002,15 +3613,20 @@ function build3D(){
     const dx=bb.x-a.x,dy=bb.y-a.y,len=Math.hypot(dx,dy);
     if(len>maxLen){const s=maxLen/len;bb={x:a.x+dx*s,y:a.y+dy*s};}
     segs.push({A:P3(a,BEAMY),B:P3(bb,BEAMY),
-      c:sg.poly?new THREE.Color(1,0.98,0.94):wl(sg.lam),
+      c:sg.poly?new THREE.Color(1,0.98,0.94):wl(sg.lamShow!==undefined?sg.lamShow:sg.lam),
       tl:0.7+Math.min(1,sg.I)*0.9});                        // 目标亮度（随强度），各色统一触发辉光
   }
   if(segs.length){
     const R=0.05;                                           // 光束半径（格）——更粗的圆柱光柱
-    const tubeGeo=new THREE.CylinderGeometry(R,R,1,10,1,false);// 沿 Y 轴的实心圆柱
+    const tubeGeo=new THREE.CylinderGeometry(R,R,1,12,1,false);// 沿 Y 轴的实心圆柱
     // 不透明彩色光柱（法向混合，不会像加性那样在亮底上糊成白色）；亮的经 Bloom 发光晕
     const tubeMat=new THREE.MeshBasicMaterial();
     const inst=new THREE.InstancedMesh(tubeGeo,tubeMat,segs.length);
+    // 体积辉光外鞘：一层半透明加性光晕圆柱（实心 + 单面，避免重叠光束加性叠加而过曝）
+    const glowGeo=new THREE.CylinderGeometry(R*2.4,R*2.4,1,14,1,false);
+    const glowMat=new THREE.MeshBasicMaterial({transparent:true,opacity:0.1,blending:THREE.AdditiveBlending,
+      depthWrite:false,side:THREE.FrontSide});
+    const glow=new THREE.InstancedMesh(glowGeo,glowMat,segs.length); glow.renderOrder=4;
     const up=new THREE.Vector3(0,1,0),dir=new THREE.Vector3(),mid=new THREE.Vector3(),
       q=new THREE.Quaternion(),sc=new THREE.Vector3(),mtx=new THREE.Matrix4(),col=new THREE.Color();
     for(let i=0;i<segs.length;i++){
@@ -3020,21 +3636,54 @@ function build3D(){
       mid.addVectors(s.A,s.B).multiplyScalar(0.5);
       q.setFromUnitVectors(up,dir);                          // Y 轴对齐光束方向
       sc.set(1,L,1);                                         // 仅沿轴拉伸到光束长度
-      inst.setMatrixAt(i,mtx.compose(mid,q,sc));
+      mtx.compose(mid,q,sc);
+      inst.setMatrixAt(i,mtx);
       const cc=s.c, lum=Math.max(0.0015,0.2126*cc.r+0.7152*cc.g+0.0722*cc.b);
       inst.setColorAt(i,col.copy(cc).multiplyScalar(Math.min(18,s.tl/lum))); // 归一到目标亮度→各色等效发光
+      glow.setMatrixAt(i,mtx);
+      glow.setColorAt(i,col.copy(cc).multiplyScalar(0.55));   // 辉光用本色(柔和,不再额外提亮)
     }
     inst.instanceMatrix.needsUpdate=true;
     if(inst.instanceColor)inst.instanceColor.needsUpdate=true;
-    sceneRoot.add(inst);
+    sceneRoot.add(inst); beamObjs.push(inst);
+    glow.instanceMatrix.needsUpdate=true; if(glow.instanceColor)glow.instanceColor.needsUpdate=true;
+    sceneRoot.add(glow); beamObjs.push(glow);
   }
   // 屏上光斑
   for(const ht of HITS){
-    const c=ht.poly?new THREE.Color(1,0.98,0.94):wl(ht.lam);
+    const c=ht.poly?new THREE.Color(1,0.98,0.94):wl(ht.lamShow!==undefined?ht.lamShow:ht.lam);
     const sp=new THREE.Mesh(new THREE.SphereGeometry(0.05,12,12),
       new THREE.MeshBasicMaterial({color:glowColor(c,1.2),transparent:true,opacity:Math.min(1,0.5+ht.I),
         blending:THREE.AdditiveBlending,depthWrite:false}));
-    sp.position.copy(P3(ht.p,BEAMY)); sceneRoot.add(sp);
+    sp.position.copy(P3(ht.p,BEAMY)); sceneRoot.add(sp); beamObjs.push(sp);
+  }
+  // 倒影（可选）：只反射「元件与光束」的很淡的模糊倒影，没有反射地面。
+  //   ①低分辨率反射(→模糊)；②反射渲染时把背景清成透明→空白处 alpha=0，就没有地面、
+  //   只留下元件/光束的倒影；③反射面材质改透明，用 uOpacity 压得很淡。
+  //   可调：REFL_RES 越低越糊；uOpacity 越小越淡。
+  if($('d3reflect')&&$('d3reflect').checked&&Reflector){
+    const rw=padW*2.4, rd=padD*2.4, REFL_RES=170;
+    reflectorMesh=new Reflector(new THREE.PlaneGeometry(rw,rd),{clipBias:0.003,textureWidth:REFL_RES,textureHeight:REFL_RES,color:0xffffff});
+    reflectorMesh.rotation.x=-Math.PI/2; reflectorMesh.position.y=0.0;
+    const rmat=reflectorMesh.material;
+    rmat.transparent=true; rmat.depthWrite=false;
+    rmat.uniforms.uOpacity={value:0.16};                          // 倒影浓淡（越小越淡）
+    rmat.fragmentShader='uniform sampler2D tDiffuse;\nuniform float uOpacity;\nvarying vec4 vUv;\nvoid main(){\n\tvec4 base=texture2DProj(tDiffuse,vUv);\n\tgl_FragColor=vec4(base.rgb, base.a*uOpacity);\n\t#include <tonemapping_fragment>\n\t#include <colorspace_fragment>\n}';
+    rmat.needsUpdate=true;
+    const _obr=reflectorMesh.onBeforeRender;                      // 反射渲染时：透明背景(无地面) + 隐藏光束(光线无倒影)
+    reflectorMesh.onBeforeRender=function(renderer,scene,camera,geo,mat,grp){
+      const bg=scene.background, a=renderer.getClearAlpha();
+      scene.background=null; renderer.setClearAlpha(0);
+      for(const m of beamObjs)m.visible=false;                   // 光束/光斑不进入倒影
+      _obr.call(this,renderer,scene,camera,geo,mat,grp);
+      for(const m of beamObjs)m.visible=true;
+      scene.background=bg; renderer.setClearAlpha(a);
+    };
+    sceneRoot.add(reflectorMesh);
+    // 透明接影面：仅阴影处变暗，形成柔和接触阴影
+    const catcher=new THREE.Mesh(new THREE.PlaneGeometry(rw,rd),new THREE.ShadowMaterial({opacity:0.2,depthWrite:false}));
+    catcher.rotation.x=-Math.PI/2; catcher.position.y=0.004; catcher.receiveShadow=true; sceneRoot.add(catcher);
+    boardMesh.visible=false;                                      // 无反射地面，隐藏面包板露出渐变背景
   }
   fitRadius=Math.max(3,Math.hypot(padW,padD)/2);
 }
@@ -3121,7 +3770,7 @@ function setQuality(level){
         keyLight.shadow.mapSize.set(shMap,shMap);
         if(keyLight.shadow.map){keyLight.shadow.map.dispose();keyLight.shadow.map=null;} // 强制按新尺寸重建
       }
-      keyLight.shadow.radius=shRad;
+      keyLight.shadow.radius=Math.max(1,parseFloat($('d3shadow').value)||shRad);   // 阴影柔和度由滑块控制
     }
   }
   if(gtaoPass)gtaoPass.enabled=ao;
@@ -3151,6 +3800,8 @@ function initThree(){
   keyLight.shadow.bias=-0.0006; keyLight.shadow.normalBias=0.02; keyLight.shadow.radius=5;
   scene3.add(keyLight);
   fillLight=new THREE.DirectionalLight(0x88aaff,0.3); fillLight.position.set(-8,6,-6); scene3.add(fillLight);
+  // 暖色背光勾边：从后下方斜射，给元件与光束镶一圈高光，立体感更接近 Blender 三点布光
+  const rimLight=new THREE.DirectionalLight(0xffd9a8,0.55); rimLight.position.set(-5,4,-9); scene3.add(rimLight);
   uniformLight=new THREE.AmbientLight(0xffffff,parseFloat($('d3bri').value)); scene3.add(uniformLight);
   // 可选主光：面光源（柔和均匀，默认）/ 点光源；让画面更亮更清晰且无刺眼热斑
   RectAreaLightUniformsLib.init();
@@ -3169,7 +3820,7 @@ function initThree(){
   gtaoPass=new GTAOPass(scene3,cam,1,1);
   if(gtaoPass.updateGtaoMaterial)gtaoPass.updateGtaoMaterial({radius:0.35,scale:1.0,thickness:1.0,samples:16});
   composer.addPass(gtaoPass);
-  bloomPass=new UnrealBloomPass(new THREE.Vector2(1,1),parseFloat($('d3bloom').value),0.5,0.5);
+  bloomPass=new UnrealBloomPass(new THREE.Vector2(1,1),parseFloat($('d3bloom').value),0.6,0.5);
   composer.addPass(bloomPass);
   composer.addPass(new OutputPass());
   new ResizeObserver(()=>{ if(d3on)sizeThree(); }).observe(three);
@@ -3210,7 +3861,7 @@ async function enter3D(){
   setProjection('persp');
   applyDayNight(isNight);
   setLightType(lightType);
-  setQuality(matchMedia('(max-width:760px)').matches?'low':qLevel);
+  setQuality(OB.getRQ?OB.getRQ():qLevel);   // 与顶栏渲染精度一致
   applyView('iso');
   $('d3loading').classList.remove('on');
   cancelAnimationFrame(rafId); loop();
@@ -3230,9 +3881,9 @@ function exit3D(){
 function toggle3D(){ d3on?exit3D():enter3D(); }
 
 /* ---------- 导出 PNG ---------- */
-function exportPNG(){
+function exportPNG(scale){
   if(!renderer)return;
-  const scale=parseInt($('d3expscale').value)||2;
+  scale=Math.max(1,Math.round(scale||2));
   const w=three.clientWidth, h=three.clientHeight;
   const prevPR=renderer.getPixelRatio();
   // 固定 pixelRatio=1 再放大尺寸 → 输出精确为 (w*scale)×(h*scale)，与渲染档位无关
@@ -3261,14 +3912,16 @@ $('d3zoom').addEventListener('input',e=>applyZoom(parseFloat(e.target.value)));
 $('d3spin').addEventListener('change',e=>{controls.autoRotate=e.target.checked;});
 $('d3night').addEventListener('change',e=>applyDayNight(e.target.checked));
 $('d3bg').addEventListener('input',e=>setBackground(e.target.value));
-$('d3board').addEventListener('change',e=>{if(boardMesh)boardMesh.visible=e.target.checked;});
+$('d3board').addEventListener('change',e=>{if(boardMesh&&!(reflectorMesh))boardMesh.visible=e.target.checked;});
+$('d3reflect').addEventListener('change',()=>{if(d3on)build3D();});   // 倒影开关：重建场景（增/删反射面）
 $('d3bri').addEventListener('input',e=>{if(uniformLight)uniformLight.intensity=parseFloat(e.target.value);});
 $('d3bloom').addEventListener('input',e=>{if(bloomPass)bloomPass.strength=parseFloat(e.target.value);});
+$('d3shadow').addEventListener('input',e=>{if(keyLight&&keyLight.shadow)keyLight.shadow.radius=Math.max(1,parseFloat(e.target.value)||1);});   // 元件阴影柔和/大小
 document.querySelectorAll('#d3light button').forEach(btn=>btn.addEventListener('click',()=>setLightType(btn.dataset.light)));
-document.querySelectorAll('#d3quality button').forEach(btn=>btn.addEventListener('click',()=>setQuality(btn.dataset.q)));
-$('d3export').addEventListener('click',exportPNG);
+// 渲染精度与导出与 2D 共用顶栏控件：暴露给 2D 脚本调用
+window.OB3D={setQuality, exportPNG, active:()=>d3on};
 // 退出 3D 的快捷键
-window.addEventListener('keydown',e=>{if(e.key==='Escape'&&d3on)exit3D();});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'&&d3on&&!document.fullscreenElement)exit3D();});
 </script>
 <!-- 不蒜子访问统计：按域名统计总浏览量(PV)与访客数(UV)，数字显示在「帮助 ? → 关于」栏。
      若部署后数字始终不显示，多为官方服务波动；把下面的 src 换成维护中的兼容镜像即可（span 不用改），
