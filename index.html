@@ -946,6 +946,23 @@ function refract(d,nrm,eta){
 }
 function reflect(d,n){return sub(d,mul(n,2*dot(d,n)))}
 
+// 菲涅尔反射率（非偏振光近似，取 s/p 两个偏振分量反射率的平均）
+// d：入射方向（单位），nrm：界面法线（单位），eta=n1/n2（入射侧比出射侧）
+// 返回 0~1 之间的反射率；全反射时返回 1
+function fresnelR(d,nrm,eta){
+  let n=nrm;
+  let ci=-dot(d,n);
+  if(ci<0){n=mul(n,-1);ci=-dot(d,n)}
+  const s2=eta*eta*(1-ci*ci);
+  if(s2>1)return 1;                            // 全反射，能量全部回到反射光
+  const ct=Math.sqrt(1-s2);
+  // n1=1/eta 份额，n2=1 份额（都是相对值，取比值即可，eta=n1/n2）
+  const n1=eta,n2=1;
+  const rs=(n1*ci-n2*ct)/(n1*ci+n2*ct);
+  const rp=(n2*ci-n1*ct)/(n2*ci+n1*ct);
+  return Math.min(1,Math.max(0,(rs*rs+rp*rp)/2));
+}
+
 // 色散：可选地让折射率随波长轻微变化（正常色散，蓝端折射率略高）
 function indexOf(P,lam){
   const base=P.n||1.5;
@@ -1127,8 +1144,9 @@ function interact(r,S,pt,Q){
     if(!entering)addPulseGDD(r,cellsToMM(P.th||0.3)*GLASS_GVD);   // 离开玻璃时计入该板色散(整段一次)
     const eta=entering?(1/indexOf(P,r.lam)):indexOf(P,r.lam);
     const rd=refract(r.d,S.n,eta);
-    if(rd)go(rd,r.I*0.985);
-    else go(reflect(r.d,S.n),r.I*0.985);
+    const R=fresnelR(r.d,S.n,eta);              // 菲涅尔反射率，正常入射角下同时存在反射和折射
+    if(rd&&R<0.999)go(rd,r.I*0.985*(1-R));      // 折射（透射）分量
+    if(R>0.001)go(reflect(r.d,S.n),r.I*0.985*R,undefined,true);   // 反射分量，R=1 时即全反射
     return;
   }
   if(type==='prism'){
@@ -1136,8 +1154,9 @@ function interact(r,S,pt,Q){
     if(!entering)addPulseGDD(r,cellsToMM(P.size||0.8)*GLASS_GVD);   // 棱镜玻璃色散(随尺寸)
     const eta=entering?(1/indexOf(P,r.lam)):indexOf(P,r.lam);
     const rd=refract(r.d,S.n,eta);
-    if(rd)go(rd,r.I*0.98,undefined,true);
-    else go(reflect(r.d,S.n),r.I*0.98,undefined,true);   // 全反射（直角棱镜转向）
+    const R=fresnelR(r.d,S.n,eta);
+    if(rd&&R<0.999)go(rd,r.I*0.98*(1-R),undefined,true);
+    if(R>0.001)go(reflect(r.d,S.n),r.I*0.98*R,undefined,true);   // 反射分量（含全反射转向情形）
     return;
   }
   if(type==='bbo'){
