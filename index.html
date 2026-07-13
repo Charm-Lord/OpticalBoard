@@ -730,6 +730,7 @@ const I18N={
   l_ox:{zh:'水平微调 格',en:'Shift X cell'}, l_oy:{zh:'垂直微调 格',en:'Shift Y cell'},
   l_poly:{zh:'复色光（白光）',en:'White light'}, l_lam:{zh:'波长 nm',en:'Wavelength nm'},
   l_width:{zh:'光束宽度 px',en:'Beam width px'}, l_bri:{zh:'亮度',en:'Brightness'},
+  l_div:{zh:'发散角 °',en:'Divergence °'},
   l_f:{zh:'焦距 f 格',en:'Focal f cell'}, l_ratio:{zh:'反射占比 %',en:'Reflect %'},
   l_base:{zh:'基准偏角 °',en:'Base angle °'}, l_disp:{zh:'色散率 °',en:'Dispersion °'},
   l_zero:{zh:'保留零级直透光',en:'Keep zero order'},
@@ -816,6 +817,9 @@ const ELEMS={
   csource:{name:'自定义激光器',en:'Custom Laser',half:.3,
     defaults:()=>({rot:0,lam:2000,lamShow:660,width:6,bri:1,poly:false,polMode:'unpol',polAng:0}),
     icon:'<svg viewBox="0 0 36 36"><rect x="3" y="11" width="18" height="14" rx="4" fill="#141b26" stroke="#8b7bd8" stroke-width="2"/><text x="12" y="22" font-size="10" font-style="italic" font-family="Georgia,serif" fill="#c9bcff" text-anchor="middle">&#955;</text><circle cx="24.5" cy="18" r="2.4" fill="#ff5a5a"/><path d="M28 18h5.5m-3-3l3 3-3 3" stroke="#ff5a5a" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
+  psource:{name:'发散光源',en:'Divergent Source',half:.3,
+    defaults:()=>({rot:0,lam:632,div:30,bri:1,poly:false,polMode:'unpol',polAng:0}),
+    icon:'<svg viewBox="0 0 36 36"><circle cx="10" cy="18" r="5" fill="#141b26" stroke="#6ad6ff" stroke-width="2"/><path d="M17 18h5m-3-9l6 8m-6 10l6-9" stroke="#6ad6ff" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M27 9l5 9-5 9" stroke="#6ad6ff" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/></svg>'},
   mirror:{name:'反射镜',en:'Mirror',half:.46,
     defaults:()=>({rot:45}),
     icon:'<svg viewBox="0 0 36 36"><path d="M7 29L29 7" stroke="#e8eef7" stroke-width="3.4" stroke-linecap="round"/><path d="M13 30l-4 4M20 23l-4 4M27 16l-4 4M34 9l-4 4" stroke="#7d8da4" stroke-width="1.5"/></svg>'},
@@ -978,7 +982,7 @@ function surfsOf(k,e){
   const c=v(cx,cy);
   const type=e.type;
   let ang=(e.props.rot||0)*D2R;
-  if(type==='source'||type==='fsource'||type==='csource')ang+=Math.PI/2;
+  if(type==='source'||type==='fsource'||type==='csource'||type==='psource')ang+=Math.PI/2;
   const t=v(Math.cos(ang),Math.sin(ang));     // 界面切向
   const nrm=v(-t.y,t.x);                       // 界面法向
   const baseHalf=ELEMS[type].half*CELL;
@@ -1016,7 +1020,7 @@ function surfsOf(k,e){
   }
   // 单段元件（含 slit 的遮挡段）
   let half=baseHalf;
-  if(type==='source'||type==='fsource'||type==='csource')half=Math.max(half,(e.props.width||6)/2+4);
+  if(type==='source'||type==='fsource'||type==='csource'||type==='psource')half=Math.max(half,(e.props.width||6)/2+4);
   return [{c,t,n:nrm,half,e,surf:'main'}];
 }
 
@@ -1027,16 +1031,43 @@ function emit(k,e,Q){
   const n=v(-d.y,d.x);
   const p=k.split(',');
   const c=v((+p[0]+.5+(P.ox||0))*CELL,(+p[1]+.5-(P.oy||0))*CELL);
-  const wid=P.width;
   const bri=P.bri===undefined?1:P.bri;
   const pol=(P.polMode==='linear')?(P.polAng||0):null;   // 线偏振角(度) 或 null(自然光)
+  const apX=8;                         // 出光口在元件本地坐标的位置
+  // 渲染精细度联动光线密度：流畅档稀疏省负荷，精细档加密最好看
+  const polyStep=(RQ==='low'?20:(RQ==='high'?7:12));   // 复色光采样波长间隔 nm
+
+  // 发散点光源：所有子光线从同一出光点出发，方向在 ±div/2 范围内均匀展开
+  if(e.type==='psource'){
+    const start=add(c,mul(d,apX));
+    const div=Math.max(0,P.div===undefined?30:P.div)*D2R;   // 发散角（全角），单位转弧度
+    const nDiv=(RQ==='low'?15:(RQ==='high'?41:27));          // 展开的子光线数量，随渲染档位调整
+    const drawW=2;
+    if(P.poly){
+      // 复色光：角度方向和波长方向都要采样，数量按档位适当收窄避免爆炸
+      const nDivPoly=Math.max(5,Math.round(nDiv*0.6));
+      for(let i=0;i<nDivPoly;i++){
+        const a=(nDivPoly>1)?(-div/2+div*i/(nDivPoly-1)):0;
+        const dd=rotv(d,a);
+        for(let w=395;w<=745;w+=polyStep*2){
+          Q.push({p:start,d:dd,lam:w,w:1.6,I:0.22*bri,gen:0,poly:true,pol});
+        }
+      }
+      return;
+    }
+    for(let i=0;i<nDiv;i++){
+      const a=(nDiv>1)?(-div/2+div*i/(nDiv-1)):0;
+      const dd=rotv(d,a);
+      Q.push({p:start,d:dd,lam:P.lam,w:drawW,I:(nDiv>1?0.85:1)*bri,gen:0,pol});
+    }
+    return;
+  }
+
+  const wid=P.width;
   // 飞秒激光器：每条子光线带脉冲信息（变换极限脉宽 tau0、中心波长、初始啁啾 gdd0）
   const pulse=(e.type==='fsource')?{isPulse:true,tau0:(P.pulse||30),lam0:P.lam,gdd:(P.gdd0||0),tod:0,fod:0}:null;
   // 自定义激光器：以 A 波长(P.lam)参与传播/色散计算，仅用 B 波长(lamShow)决定显示颜色
   const lamShow=(e.type==='csource')?(P.lamShow||P.lam):undefined;
-  const apX=8;                         // 出光口在元件本地坐标的位置
-  // 渲染精细度联动光线密度：流畅档稀疏省负荷，精细档加密最好看
-  const polyStep=(RQ==='low'?20:(RQ==='high'?7:12));   // 复色光采样波长间隔 nm
   const subSpace=(RQ==='low'?5:(RQ==='high'?2:3));      // 宽光束子光线间距 px
   if(P.poly){
     const start=add(c,mul(d,apX));
@@ -1061,6 +1092,7 @@ function emit(k,e,Q){
   }
 }
 
+
 /* ---------- 光线追迹 ---------- */
 function interact(r,S,pt,Q){
   const e=S.e, type=e.type, P=e.props;
@@ -1073,7 +1105,7 @@ function interact(r,S,pt,Q){
   };
   const absorb=()=>{HITS.push({p:pt,lam:r.lam,I:r.I,poly:r.poly,pol:r.pol,lamShow:r.lamShow})};
   if(type==='screen'){absorb();return}
-  if(type==='source'||type==='fsource'||type==='csource')return;
+  if(type==='source'||type==='fsource'||type==='csource'||type==='psource')return;
   if(type==='mirror'){
     if(dot(r.d,S.n)>0)go(sub(r.d,mul(S.n,2*dot(r.d,S.n))),r.I);
     else absorb();
@@ -1270,7 +1302,7 @@ function trace(){
   SEGS=[];HITS=[];METER.clear();PULSEM.clear();
   const Q=[], elems=[];
   for(const [k,e] of grid){
-    if(e.type==='source'||e.type==='fsource'||e.type==='csource')emit(k,e,Q);
+    if(e.type==='source'||e.type==='fsource'||e.type==='csource'||e.type==='psource')emit(k,e,Q);
     const ss=surfsOf(k,e);
     for(let q=0;q<ss.length;q++)elems.push(ss[q]);
   }
@@ -1412,7 +1444,7 @@ function drawElem(k,e){
   ctx.translate(cx,cy);
   ctx.rotate((e.props.rot||0)*D2R);
   ctx.lineCap='round';
-  if(e.type==='source'||e.type==='fsource'||e.type==='csource'){
+  if(e.type==='source'||e.type==='fsource'||e.type==='csource'||e.type==='psource'){
     const showLam=(e.type==='csource')?(e.props.lamShow||e.props.lam):e.props.lam;   // 自定义激光器按显示波长上色
     const col=e.props.poly?(T.light?{r:120,g:110,b:90}:{r:255,g:250,b:240}):wlRGB(showLam);
     const bri=e.props.bri===undefined?1:e.props.bri;
@@ -2329,7 +2361,7 @@ function makePalBtn(type){
   });
   return b;
 }
-const SRC_TYPES=['source','fsource','csource'];   // 光源类：放「光源」板块
+const SRC_TYPES=['source','fsource','csource','psource'];   // 光源类：放「光源」板块
 function buildPalette(){
   const sp=document.getElementById('srcPalette');
   for(const type of Object.keys(ELEMS)){
@@ -2619,7 +2651,7 @@ function renderProps(){
 
   const normRot=a=>((a%360)+540)%360-180;     // 归一到 -180~180，0° 在滑块正中
   P.rot=normRot(P.rot||0);
-  if(e.type==='source'||e.type==='fsource'||e.type==='csource'){
+  if(e.type==='source'||e.type==='fsource'||e.type==='csource'||e.type==='psource'){
     range(tr('l_rotOut'),'rot',-180,180,1);
   }else{
     range(tr('l_rot'),'rot',-180,180,1);
@@ -2685,6 +2717,14 @@ function renderProps(){
     const note=document.createElement('div');
     note.className='empty'; note.style.opacity='.85'; note.textContent=tr('l_csNote');
     propsEl.appendChild(note);
+  }else if(e.type==='psource'){
+    check(tr('l_poly'),'poly');
+    if(!P.poly)range(tr('l_lam'),'lam',200,1600,1);
+    range(tr('l_div'),'div',1,180,1);
+    range(tr('l_bri'),'bri',0.1,2,0.05);
+    if(P.polMode===undefined)P.polMode='unpol';
+    select(tr('l_polMode'),'polMode',[['unpol',tr('o_unpol')],['linear',tr('o_linear')]]);
+    if(P.polMode==='linear')range(tr('l_polAng'),'polAng',-90,90,1);
   }else if(e.type==='cmirror'){
     range(tr('l_f'),'f',0.5,6,0.1);
   }else if(e.type==='lensCX'){
@@ -3353,7 +3393,7 @@ function dishGeo(R,depth,base){
 function makeOptic(k,e){
   const p=k.split(',');
   const c={x:(+p[0]+.5+(e.props.ox||0))*CELL,y:(+p[1]+.5-(e.props.oy||0))*CELL};
-  let ang=(e.props.rot||0)*D2R; if(e.type==='source'||e.type==='fsource'||e.type==='csource')ang+=Math.PI/2;   // 光源出光沿 -Z，与 2D 出射方向一致（含飞秒/自定义激光器）
+  let ang=(e.props.rot||0)*D2R; if(e.type==='source'||e.type==='fsource'||e.type==='csource'||e.type==='psource')ang+=Math.PI/2;   // 光源出光沿 -Z，与 2D 出射方向一致（含飞秒/自定义激光器）
   const t={x:Math.cos(ang),y:Math.sin(ang)}, nrm={x:-t.y,y:t.x};
   const hf=(OB.ELEMS[e.type]?OB.ELEMS[e.type].half:0.45), type=e.type;
   const R1=HEL/2;   // Ø1" 标准通光半径
@@ -3462,7 +3502,7 @@ function makeOptic(k,e){
     return placeByBasis(m,c,t,nrm,BEAMY);
   }
   // 激光源 / 飞秒激光器 / 自定义激光器：阳极氧化激光头 + 散热齿 + 收口 + 发光出光孔（出射沿 -Z）
-  if(type==='source'||type==='fsource'||type==='csource'){
+  if(type==='source'||type==='fsource'||type==='csource'||type==='psource'){
     const g=new THREE.Group();
     const isFs=(type==='fsource');
     // 半径随光束宽度变化，与 2D 一致（2D 出光口半高=max(7,width)，外壳=ap+12）
