@@ -3025,7 +3025,7 @@ expScaleN.addEventListener('change',()=>{
 document.getElementById('expcancel').addEventListener('click',()=>{expMask.hidden=true});
 expMask.addEventListener('pointerdown',ev=>{if(ev.target===expMask)expMask.hidden=true});
 document.getElementById('expgo').addEventListener('click',()=>{
-  if(window.OB3D&&window.OB3D.active()){window.OB3D.exportPNG(parseFloat(expScale.value)||2);expMask.hidden=true;return;}
+  if(window.OB3D&&window.OB3D.active()){window.OB3D.exportPNG(parseFloat(expScale.value)||2,expTrans.checked);expMask.hidden=true;return;}
   const b=baseSize();
   const sc=parseFloat(expScale.value);
   const off=document.createElement('canvas');
@@ -3840,7 +3840,8 @@ function setQuality(level){
 /* ---------- 初始化 ---------- */
 function initThree(){
   buildMaterials();
-  renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,alpha:false});
+  renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,alpha:true});
+  renderer.setClearAlpha(1);
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure=1.2;
@@ -3940,18 +3941,81 @@ function exit3D(){
 function toggle3D(){ d3on?exit3D():enter3D(); }
 
 /* ---------- 导出 PNG ---------- */
-function exportPNG(scale){
+function exportPNG(scale,transparent=false){
   if(!renderer)return;
   scale=Math.max(1,Math.round(scale||2));
   const w=three.clientWidth, h=three.clientHeight;
   const prevPR=renderer.getPixelRatio();
+  const prevBg=scene3.background, prevFog=scene3.fog, prevClearAlpha=renderer.getClearAlpha();
+  const prevBloomEnabled=bloomPass.enabled;
+  let exportStateRestored=false;
+  const restoreExportState=()=>{
+    if(exportStateRestored)return;
+    scene3.background=prevBg; scene3.fog=prevFog; renderer.setClearAlpha(prevClearAlpha);
+    bloomPass.enabled=prevBloomEnabled;
+    renderer.setPixelRatio(prevPR); if(composer.setPixelRatio)composer.setPixelRatio(prevPR);
+    renderer.setSize(w,h,false); composer.setSize(w,h);
+    exportStateRestored=true;
+  };
+  if(transparent){
+    scene3.background=null;
+    scene3.fog=null;
+    renderer.setClearAlpha(0);
+  }
   // 固定 pixelRatio=1 再放大尺寸 → 输出精确为 (w*scale)×(h*scale)，与渲染档位无关
   renderer.setPixelRatio(1); if(composer.setPixelRatio)composer.setPixelRatio(1);
   renderer.setSize(w*scale,h*scale,false); composer.setSize(w*scale,h*scale);
   composer.render();
-  renderer.domElement.toBlob(bl=>{
-    renderer.setPixelRatio(prevPR); if(composer.setPixelRatio)composer.setPixelRatio(prevPR);
-    renderer.setSize(w,h,false); composer.setSize(w,h);
+  let exportCanvas=renderer.domElement;
+  if(transparent){
+    // 保留 Bloom 的 RGB（否则红色光束会明显偏橙），再用无 Bloom 渲染重建 Alpha。
+    // UnrealBloomPass 会把空白区域的 Alpha 写成 1，不能直接使用其 Alpha 通道。
+    const colorCanvas=document.createElement('canvas');
+    colorCanvas.width=renderer.domElement.width; colorCanvas.height=renderer.domElement.height;
+    const colorCtx=colorCanvas.getContext('2d',{willReadFrequently:true});
+    colorCtx.drawImage(renderer.domElement,0,0);
+
+    bloomPass.enabled=false;
+    composer.render();
+
+    // 分条处理，避免 4x 导出时同时分配两张完整 ImageData。
+    const stripCanvas=document.createElement('canvas');
+    stripCanvas.width=colorCanvas.width;
+    const stripHeight=128;
+    for(let y=0;y<colorCanvas.height;y+=stripHeight){
+      const sh=Math.min(stripHeight,colorCanvas.height-y);
+      stripCanvas.height=sh;
+      const stripCtx=stripCanvas.getContext('2d',{willReadFrequently:true});
+      stripCtx.drawImage(renderer.domElement,0,y,colorCanvas.width,sh,0,0,colorCanvas.width,sh);
+      const colorData=colorCtx.getImageData(0,y,colorCanvas.width,sh);
+      const maskData=stripCtx.getImageData(0,0,colorCanvas.width,sh);
+      for(let i=0;i<colorData.data.length;i+=4){
+        const r=colorData.data[i], g=colorData.data[i+1], b=colorData.data[i+2];
+        const maskAlpha=maskData.data[i+3]/255;
+        // Bloom 是加到黑底上的颜色；以最亮通道反推出最小可表示 Alpha，
+        // 再转回 straight-alpha，使 PNG 叠到黑底时与网页显示保持一致。
+        // 只在无 Bloom 渲染已经覆盖到的光束/物体像素中恢复辉光，
+        // 避免极弱的全屏 Bloom 让整张透明图带上一层低 Alpha 色雾。
+        const alpha=maskAlpha>0?Math.max(maskAlpha,r/255,g/255,b/255):0;
+        if(alpha<=0){
+          colorData.data[i]=colorData.data[i+1]=colorData.data[i+2]=colorData.data[i+3]=0;
+        }else{
+          if(alpha<1){
+            colorData.data[i]=Math.min(255,Math.round(r/alpha));
+            colorData.data[i+1]=Math.min(255,Math.round(g/alpha));
+            colorData.data[i+2]=Math.min(255,Math.round(b/alpha));
+          }
+          colorData.data[i+3]=Math.round(alpha*255);
+        }
+      }
+      colorCtx.putImageData(colorData,0,y);
+    }
+    exportCanvas=colorCanvas;
+    // colorCanvas 已脱离 WebGL 画布，可立即恢复交互视图，避免 PNG 编码期间闪屏。
+    restoreExportState();
+  }
+  exportCanvas.toBlob(bl=>{
+    restoreExportState();
     if(!bl)return;
     const a=document.createElement('a');
     a.href=URL.createObjectURL(bl); a.download='opticalboard-3d.png';
